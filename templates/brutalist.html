@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VICTOR SANTOS // DEVELOPER</title>
+<meta name="description" content="Victor Santos — full-stack developer. Raw, no-nonsense. Career changelog, writing, contact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9e7df; --fg:#0a0a0a; --accent:#1f1fe6; --accent-2:#ff3b1f; --yellow:#f5e000;
+  --sans:'Archivo',Helvetica,Arial,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:var(--accent);color:#fff}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.4;font-size:16px;-webkit-font-smoothing:none}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono)}
+
+/* fixed border frame */
+.frame{position:fixed;inset:10px;border:2px solid var(--fg);pointer-events:none;z-index:50}
+@media(max-width:600px){.frame{inset:6px;border-width:1px}}
+
+/* marquee top */
+.ticker{position:fixed;top:0;left:0;right:0;background:var(--fg);color:var(--bg);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:7px 0;overflow:hidden;white-space:nowrap;z-index:40}
+.ticker .run{display:inline-block;animation:run 26s linear infinite}
+.ticker .run span{margin:0 28px}
+@keyframes run{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.wrap{max-width:1200px;margin:0 auto;padding:0 28px}
+.pt{padding-top:50px}
+
+/* hero */
+.hero{padding:34px 0 0;border-bottom:2px solid var(--fg)}
+.hmeta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;padding-bottom:18px;border-bottom:2px solid var(--fg)}
+.hname{font-family:var(--sans);font-weight:900;font-size:clamp(3rem,15vw,12rem);line-height:.82;letter-spacing:-.04em;text-transform:uppercase;padding:18px 0 8px;word-break:break-word}
+.hname span{color:var(--accent)}
+.hsub{display:grid;grid-template-columns:2fr 1fr;border-top:2px solid var(--fg)}
+.hsub>div{padding:18px;border-left:2px solid var(--fg)}
+.hsub>div:first-child{border-left:none}
+.hsub p{font-size:18px;max-width:48ch}
+.hsub .tag{font-family:var(--mono);font-size:13px;text-transform:uppercase}
+@media(max-width:640px){.hsub{grid-template-columns:1fr}.hsub>div{border-left:none;border-top:2px solid var(--fg)}}
+
+/* nav row */
+nav{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--fg)}
+nav a{flex:1;min-width:120px;font-family:var(--mono);font-size:13px;text-transform:uppercase;letter-spacing:.06em;padding:14px 16px;border-left:2px solid var(--fg);transition:.08s}
+nav a:first-child{border-left:none}
+nav a:hover{background:var(--fg);color:var(--bg)}
+
+/* section head */
+.sh{display:flex;align-items:baseline;justify-content:space-between;padding:34px 0 10px;flex-wrap:wrap;gap:8px}
+.sh h2{font-weight:900;font-size:clamp(1.8rem,5vw,3rem);text-transform:uppercase;letter-spacing:-.02em}
+.sh .idx{font-family:var(--mono);font-size:13px;background:var(--accent);color:#fff;padding:4px 10px}
+
+/* changelog */
+.log{border-top:2px solid var(--fg)}
+.row{display:grid;grid-template-columns:200px 1fr;border-bottom:2px solid var(--fg)}
+.row .ver{padding:20px;border-right:2px solid var(--fg);background:var(--fg);color:var(--bg)}
+.row .ver .v{font-weight:900;font-size:1.7rem;letter-spacing:-.02em}
+.row .ver .t{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--yellow);display:block;margin-top:4px}
+.row .body{padding:20px}
+.row .body h4{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:14px 0 4px}
+.row .body h4:first-child{margin-top:0}
+.row .body ul{list-style:none}
+.row .body li{padding-left:20px;position:relative;margin:3px 0;font-size:15.5px}
+.row .body li::before{content:"+";position:absolute;left:0;font-family:var(--mono);font-weight:700;color:var(--accent-2)}
+@media(max-width:600px){.row{grid-template-columns:1fr}.row .ver{border-right:none}}
+
+/* grid blocks */
+.blocks{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--fg);border-bottom:none}
+.blk{padding:24px;border-right:2px solid var(--fg);border-bottom:2px solid var(--fg)}
+.blk:nth-child(2n){border-right:none}
+.blk h3{font-weight:900;text-transform:uppercase;font-size:1.3rem;margin-bottom:12px}
+.blk ul{list-style:none}
+.blk li{font-family:var(--mono);font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--fg)}
+.blk li:last-child{border-bottom:none}
+.blk .arrow{color:var(--accent-2);font-weight:700}
+@media(max-width:600px){.blocks{grid-template-columns:1fr}.blk{border-right:none}}
+
+/* writing */
+.posts{border-top:2px solid var(--fg)}
+.post{display:grid;grid-template-columns:60px 1fr auto;gap:0;align-items:center;border-bottom:2px solid var(--fg);transition:.08s}
+.post:hover{background:var(--fg);color:var(--bg)}
+.post .n{font-family:var(--mono);font-weight:700;padding:22px;border-right:2px solid var(--fg)}
+.post:hover .n{border-color:var(--bg)}
+.post .ti{padding:22px}
+.post .ti b{display:block;font-weight:900;font-size:1.25rem;text-transform:uppercase}
+.post .ti em{font-style:normal;font-family:var(--mono);font-size:13px;opacity:.7}
+.post .go{padding:22px;font-family:var(--mono);font-size:20px}
+
+/* contact */
+.contact{border:2px solid var(--fg);margin:40px 0;background:var(--accent);color:#fff}
+.contact .top{padding:30px;border-bottom:2px solid #fff}
+.contact .top h2{font-weight:900;font-size:clamp(2rem,7vw,4.5rem);text-transform:uppercase;line-height:.9;letter-spacing:-.03em}
+.contact .top p{font-family:var(--mono);font-size:14px;margin-top:14px;max-width:50ch}
+.contact .links{display:grid;grid-template-columns:repeat(3,1fr)}
+.contact .links a{padding:22px 30px;font-family:var(--mono);text-transform:uppercase;font-size:14px;border-left:2px solid #fff;transition:.08s}
+.contact .links a:first-child{border-left:none}
+.contact .links a:hover{background:#fff;color:var(--accent)}
+@media(max-width:600px){.contact .links{grid-template-columns:1fr}.contact .links a{border-left:none;border-top:2px solid #fff}}
+
+footer{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:10px 0 40px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.reveal{opacity:0;transform:translateY(20px);transition:.5s ease}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="frame"></div>
+<div class="ticker"><div class="run">
+  <span>★ OPEN TO WORK</span><span>FULL-STACK DEVELOPER</span><span>BUILDING IN PUBLIC</span><span>REMOTE-FRIENDLY</span><span>VICTORSANTOS.ORG</span>
+  <span>★ OPEN TO WORK</span><span>FULL-STACK DEVELOPER</span><span>BUILDING IN PUBLIC</span><span>REMOTE-FRIENDLY</span><span>VICTORSANTOS.ORG</span>
+</div></div>
+
+<div class="wrap pt">
+
+  <header class="hero">
+    <div class="hmeta"><span>VICTOR SANTOS</span><span>EST. [YEAR]</span><span>DEV / WEB</span><span>STATUS: AVAILABLE</span></div>
+    <h1 class="hname">VICTOR<br>SAN<span>TOS</span></h1>
+    <div class="hsub">
+      <div><p>Full-stack developer. I build clean APIs, fast interfaces, and tools I'd actually use. No framework worship. No filler. Just things that ship.</p></div>
+      <div class="tag">→ BACKEND<br>→ FRONTEND<br>→ THE BORING GLUE<br>→ THAT ACTUALLY WORKS</div>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#log">CHANGELOG</a><a href="#now">NOW</a><a href="#writing">WRITING</a><a href="#notes">NOTES</a><a href="#contact">CONTACT</a>
+  </nav>
+
+  <section id="log" class="reveal">
+    <div class="sh"><h2>CAREER CHANGELOG</h2><span class="idx">01 / LOG</span></div>
+    <div class="log">
+      <div class="row"><div class="ver"><div class="v">UNRELEASED</div><span class="t">IN PROGRESS</span></div><div class="body">
+        <h4>IN PROGRESS</h4><ul><li>Shipping vss.dev — hand-built, no frameworks</li><li>Interviewing for backend / full-stack roles</li><li>Reading Designing Data-Intensive Applications</li></ul>
+        <h4>GOALS</h4><ul><li>Open-source one tool I use every week</li><li>One post a week, keep the streak</li></ul>
+      </div></div>
+      <div class="row"><div class="ver"><div class="v">2026.04</div><span class="t">SHARPENING THE SAW</span></div><div class="body">
+        <h4>ADDED</h4><ul><li>Daily algorithms habit — past 90 days</li><li>A home lab for self-hosting</li></ul>
+        <h4>LEARNED</h4><ul><li>Comfort with system-design tradeoffs</li><li>I think clearer building in public</li></ul>
+      </div></div>
+      <div class="row"><div class="ver"><div class="v">2026.01</div><span class="t">BUILDING, NOT WAITING</span></div><div class="body">
+        <h4>CHANGED</h4><ul><li>Search reframed as a build season</li><li>Ship proof, then apply</li></ul>
+        <h4>ADDED</h4><ul><li>Three side projects, idea to deploy</li><li>A consistent writing practice</li></ul>
+      </div></div>
+      <div class="row"><div class="ver"><div class="v">2025.07</div><span class="t">BETWEEN ROLES</span></div><div class="body">
+        <h4>CONTEXT</h4><ul><li>[Previous role] wrapped up</li><li>Took two weeks to rest first</li></ul>
+        <h4>LEARNED</h4><ul><li>Rest is part of the work</li><li>A year off the title ≠ a year off the craft</li></ul>
+      </div></div>
+    </div>
+  </section>
+
+  <section id="now" class="reveal">
+    <div class="sh"><h2>NOW + NOTES</h2><span class="idx">02 / STATE</span></div>
+    <div class="blocks">
+      <div class="blk" id="now"><h3>THIS WEEK</h3><ul>
+        <li><span class="arrow">→</span> Polishing vss.dev for launch</li>
+        <li><span class="arrow">→</span> Two technical interviews</li>
+        <li><span class="arrow">→</span> Tests under one minute</li>
+        <li><span class="arrow">→</span> Reading on the side</li>
+      </ul></div>
+      <div class="blk" id="notes"><h3>FIELD NOTES</h3><ul>
+        <li><b>DEBUG BY BISECTION:</b> cut the problem in half, test, repeat. Ten halvings clears 1,000 lines.</li>
+        <li><b>5-MINUTE RULE:</b> write what you expected / what happened / what you tried. Half the time that's the fix.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="writing" class="reveal">
+    <div class="sh"><h2>WRITING</h2><span class="idx">03 / WORDS</span></div>
+    <div class="posts">
+      <a class="post" href="#contact"><span class="n">001</span><span class="ti"><b>BUILDING VSS.DEV FROM ONE FILE</b><em>No framework. No build step. View-source honest.</em></span><span class="go">↗</span></a>
+      <a class="post" href="#contact"><span class="n">002</span><span class="ti"><b>ESCAPING THE TUTORIAL TRAP</b><em>Tutorials remove the one thing that teaches you.</em></span><span class="go">↗</span></a>
+    </div>
+  </section>
+
+  <section class="contact reveal" id="contact">
+    <div class="top"><h2>HIRE ME.<br>OR JUST SAY HI.</h2><p>AVAILABLE NOW · REMOTE-FRIENDLY · HAPPY TO RELOCATE. MENTION "CHANGELOG" SO I KNOW YOU READ THIS FAR.</p></div>
+    <div class="links">
+      <a href="mailto:fake-email@fake-domain.com">EMAIL ↗</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GITHUB ↗</a>
+      <a href="https://linkedin.com/" target="_blank" rel="noopener">LINKEDIN ↗</a>
+    </div>
+  </section>
+
+  <footer><span>© 2026 VICTOR SANTOS</span><span>SET IN ARCHIVO + JETBRAINS MONO</span><span>NO FRAMEWORKS WERE HARMED</span></footer>
+
+</div>
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

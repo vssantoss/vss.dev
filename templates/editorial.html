@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Santos Dispatch — Victor Santos</title>
+<meta name="description" content="Victor Santos, full-stack developer. A personal dispatch: writing, working notes, and a career changelog.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f6f1e6; --paper-2:#efe8d8; --ink:#1c1916; --ink-soft:#4a443c;
+  --faint:#8a8273; --rule:#cabfa7; --accent:#8c2f1f; --accent-2:#3a4a3f;
+  --serif:'Spectral',Georgia,serif; --display:'DM Serif Display',Georgia,serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:var(--accent);color:var(--paper)}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.6;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent)}
+.rule{border:none;border-top:1px solid var(--rule);margin:0}
+.rule.thick{border-top:3px double var(--ink)}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(140,47,31,.35)}
+a:hover{background:rgba(140,47,31,.08)}
+
+/* masthead */
+.masthead{padding:26px 0 14px;text-align:center}
+.topline{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding-bottom:14px}
+.title{font-family:var(--display);font-size:clamp(2.8rem,9vw,6.2rem);line-height:.92;letter-spacing:-.02em;margin:.18em 0;font-weight:400}
+.subtitle{font-family:var(--mono);font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-soft)}
+.masthead .dbl{margin:16px 0 0}
+
+/* nav */
+nav{display:flex;justify-content:center;flex-wrap:wrap;gap:0;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;padding:10px 0}
+nav a{border:none;padding:6px 18px;color:var(--ink-soft);border-bottom:2px solid transparent}
+nav a:hover{color:var(--accent);background:none;border-bottom-color:var(--accent)}
+
+/* lede / hero columns */
+.lede{padding:40px 0 30px}
+.lede h2{font-family:var(--display);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;font-weight:400;max-width:18ch;margin-bottom:.5em}
+.cols{column-count:2;column-gap:42px;column-rule:1px solid var(--rule);margin-top:18px}
+.cols p{margin-bottom:1em;text-align:justify;hyphens:auto}
+.cols p:first-child::first-letter{font-family:var(--display);font-size:4.2em;float:left;line-height:.7;padding:.06em .12em 0 0;color:var(--accent)}
+@media(max-width:720px){.cols{column-count:1}}
+
+/* section heading */
+.sec{padding:46px 0 8px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:22px}
+.sec-head h3{font-family:var(--display);font-size:2rem;font-weight:400;white-space:nowrap}
+.sec-head .line{flex:1;border-top:1px solid var(--rule);transform:translateY(-6px)}
+.sec-head .no{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+
+/* changelog ledger */
+.entry{display:grid;grid-template-columns:160px 1fr;gap:30px;padding:22px 0;border-top:1px solid var(--rule)}
+.entry:first-of-type{border-top:3px double var(--ink)}
+.entry .ver{font-family:var(--mono)}
+.entry .ver .v{font-family:var(--display);font-size:1.5rem;display:block;color:var(--accent)}
+.entry .ver .tag{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.entry h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-2);margin:14px 0 4px}
+.entry h4:first-child{margin-top:0}
+.entry ul{list-style:none}
+.entry li{padding-left:18px;position:relative;margin:4px 0}
+.entry li::before{content:"—";position:absolute;left:0;color:var(--accent)}
+@media(max-width:620px){.entry{grid-template-columns:1fr;gap:8px}}
+
+/* two-up: now + writing */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:52px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr;gap:30px}}
+.now-list{list-style:none}
+.now-list li{padding:10px 0;border-bottom:1px solid var(--rule);display:flex;gap:12px}
+.now-list li .b{color:var(--accent);font-family:var(--mono)}
+.callout{font-family:var(--display);font-size:1.5rem;line-height:1.3;color:var(--ink);margin-top:18px;padding-left:18px;border-left:3px solid var(--accent)}
+
+/* articles */
+.art{padding:18px 0;border-bottom:1px solid var(--rule)}
+.art .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.art h4{font-family:var(--display);font-size:1.55rem;font-weight:400;line-height:1.12;margin-bottom:8px}
+.art p{color:var(--ink-soft);font-size:16.5px}
+.art a.more{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:none}
+
+/* tips boxes */
+.tips{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink)}
+.tip{padding:26px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.tip:nth-child(2n){border-right:none}
+.tip h4{font-family:var(--display);font-size:1.3rem;font-weight:400;margin-bottom:8px}
+.tip p{font-size:16px;color:var(--ink-soft)}
+.tip .num{font-family:var(--mono);color:var(--accent);font-size:12px;letter-spacing:.1em}
+@media(max-width:620px){.tips{grid-template-columns:1fr}.tip{border-right:none}}
+
+/* colophon / contact */
+.colophon{margin:60px 0 0;padding:40px 0;border-top:3px double var(--ink);text-align:center}
+.colophon h3{font-family:var(--display);font-size:2.4rem;font-weight:400;margin-bottom:10px}
+.colophon p{color:var(--ink-soft);max-width:46ch;margin:0 auto 22px}
+.links{display:flex;justify-content:center;gap:0;flex-wrap:wrap;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.links a{border:none;padding:8px 22px;border-left:1px solid var(--rule)}
+.links a:first-child{border-left:none}
+footer{text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:30px 0 50px}
+.reveal{opacity:0;transform:translateY(16px);transition:.7s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="topline"><span>No. 01 · Vol. MMXXVI</span><span>Personal Edition</span><span>victorsantos.org</span></div>
+    <hr class="rule">
+    <h1 class="title">Victor&nbsp;Santos</h1>
+    <div class="subtitle">Full-Stack Developer · Builder for the Web</div>
+    <hr class="rule dbl">
+    <nav>
+      <a href="#about">About</a><a href="#changelog">Career Changelog</a><a href="#now">Now</a><a href="#writing">Writing</a><a href="#tips">Field Notes</a><a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="lede" id="about">
+    <span class="kicker">The Lede</span>
+    <h2>A developer building in public, between roles and shipping proof.</h2>
+    <div class="cols">
+      <p>Hello — I'm Victor. I build software for the web: clean APIs, interfaces that feel fast, and small tools I would actually want to use myself. This page is less a brochure than a working record — a dispatch from the desk.</p>
+      <p>The headline below is the part most résumés hide: an honest, versioned log of how I've spent the last year. I treated time between roles as a build season, not a holding pattern, and the changelog is the receipt.</p>
+      <p>If you're hiring for a backend or full-stack role on a team that values shipping and craft in equal measure, read on — and then say hello. I read everything that isn't a mass-blast.</p>
+    </div>
+  </section>
+
+  <section class="sec reveal" id="changelog">
+    <div class="sec-head"><span class="no">§ 01</span><h3>Career Changelog</h3><span class="line"></span></div>
+
+    <div class="entry">
+      <div class="ver"><span class="v">Unreleased</span><span class="tag">In Progress</span></div>
+      <div>
+        <h4>In Progress</h4>
+        <ul><li>Shipping vss.dev — this site, hand-built, no frameworks</li><li>Interviewing for backend / full-stack roles</li><li>Reading <em>Designing Data-Intensive Applications</em>, cover to cover</li></ul>
+        <h4>Goals</h4>
+        <ul><li>Open-source one tool I reach for every week</li><li>Publish one essay every week and keep the streak</li></ul>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="ver"><span class="v">2026.04</span><span class="tag">Sharpening the Saw</span></div>
+      <div>
+        <h4>Added</h4><ul><li>A daily algorithms habit — past 90 days unbroken</li><li>A small home lab for self-hosting and breaking things safely</li></ul>
+        <h4>Learned</h4><ul><li>Real comfort talking through system-design tradeoffs aloud</li><li>That I think more clearly when I build in public</li></ul>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="ver"><span class="v">2026.01</span><span class="tag">Building, Not Waiting</span></div>
+      <div>
+        <h4>Changed</h4><ul><li>Reframed the search as a build season, not a holding pattern</li><li>Moved from "apply everywhere" to "ship proof, then apply"</li></ul>
+        <h4>Added</h4><ul><li>Three side projects taken from idea to deployed</li><li>A consistent writing practice</li></ul>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="ver"><span class="v">2025.07</span><span class="tag">Between Roles</span></div>
+      <div>
+        <h4>Context</h4><ul><li><em>[Previous role]</em> wrapped up</li><li>Took two weeks to actually rest first — recommended</li></ul>
+        <h4>Learned</h4><ul><li>Rest is part of the work, not a break from it</li><li>A year away from a title is not a year away from the craft</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="sec reveal" id="now">
+      <div class="sec-head"><span class="no">§ 02</span><h3>Now</h3><span class="line"></span></div>
+      <ul class="now-list">
+        <li><span class="b">→</span> Polishing vss.dev for launch</li>
+        <li><span class="b">→</span> Two technical interviews — prepping system design</li>
+        <li><span class="b">→</span> Refactoring a project so its tests run in under a minute</li>
+        <li><span class="b">→</span> Reading <em>[book]</em> on the side</li>
+      </ul>
+      <p class="callout">"The best way to predict the future is to ship it."</p>
+    </section>
+
+    <section class="sec reveal" id="writing">
+      <div class="sec-head"><span class="no">§ 03</span><h3>Writing</h3><span class="line"></span></div>
+      <article class="art">
+        <div class="meta">Essay · Building</div>
+        <h4>Building vss.dev from one file</h4>
+        <p>I wanted my site to be the thing it talks about: no framework, no build step, just honest source you can view.</p>
+      </article>
+      <article class="art">
+        <div class="meta">Essay · Learning</div>
+        <h4>Escaping the tutorial trap</h4>
+        <p>Tutorials remove the one thing that actually teaches you — getting stuck. Here's the rule that fixed it.</p>
+      </article>
+    </section>
+  </div>
+
+  <section class="sec reveal" id="tips">
+    <div class="sec-head"><span class="no">§ 04</span><h3>Field Notes</h3><span class="line"></span></div>
+    <div class="tips">
+      <div class="tip"><span class="num">No. 01</span><h4>Debugging by bisection</h4><p>Don't read every line. Cut the problem in half, test, repeat. A bug in 1,000 lines is ten halvings from caught — the same trick <code>git bisect</code> runs on your history.</p></div>
+      <div class="tip"><span class="num">No. 02</span><h4>The five-minute rule</h4><p>Before asking anyone, spend five minutes writing what you expected, what happened, and what you tried. Half the time, that <em>is</em> the fix.</p></div>
+    </div>
+  </section>
+
+  <section class="colophon" id="contact">
+    <span class="kicker">Correspondence</span>
+    <h3>Let's talk shop.</h3>
+    <p>Available now · remote-friendly · happy to relocate for the right team. Mention <code>changelog</code> so I know you read this far.</p>
+    <div class="links">
+      <a href="mailto:fake-email@fake-domain.com">Email</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </section>
+
+  <footer>Set in DM Serif Display &amp; Spectral · Printed on the web · © MMXXVI Victor Santos</footer>
+
+</div>
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

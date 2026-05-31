@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>victor@vss:~$</title>
+<meta name="description" content="Victor Santos — full-stack developer. A terminal you can actually type in. Career changelog, writing, contact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#040a05; --green:#3dff7a; --green-dim:#1f9c4a; --amber:#ffb454; --cyan:#52e0e0; --white:#d6ffe0;
+  --term:'VT323',monospace; --ui:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:var(--green);color:#031006}
+html,body{height:100%}
+body{
+  background:radial-gradient(circle at 50% 40%, #0a1a0d 0%, #040a05 75%);
+  color:var(--green);font-family:var(--term);font-size:22px;line-height:1.25;overflow:hidden;
+}
+/* CRT overlays */
+.scan{position:fixed;inset:0;pointer-events:none;z-index:9;background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.28) 2px 4px);mix-blend-mode:multiply}
+.vig{position:fixed;inset:0;pointer-events:none;z-index:8;box-shadow:inset 0 0 180px 40px rgba(0,0,0,.9);background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%)}
+.flick{position:fixed;inset:0;pointer-events:none;z-index:7;background:var(--green);opacity:0;animation:flick 7s infinite}
+@keyframes flick{0%,97%,100%{opacity:0}98%{opacity:.012}99%{opacity:.025}}
+
+.screen{position:relative;z-index:5;height:100vh;display:flex;flex-direction:column;padding:26px clamp(16px,5vw,80px);max-width:1100px;margin:0 auto}
+.titlebar{display:flex;justify-content:space-between;align-items:center;font-family:var(--ui);font-size:11px;letter-spacing:.1em;color:var(--green-dim);text-transform:uppercase;border-bottom:1px solid rgba(61,255,122,.25);padding-bottom:10px;margin-bottom:12px}
+.titlebar .dots{display:flex;gap:7px}
+.titlebar .dots i{width:11px;height:11px;border-radius:50%;border:1px solid var(--green-dim);display:inline-block}
+.titlebar .dots i.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+
+.out{flex:1;overflow-y:auto;text-shadow:0 0 6px rgba(61,255,122,.45);padding-right:8px}
+.out::-webkit-scrollbar{width:8px}
+.out::-webkit-scrollbar-thumb{background:var(--green-dim);border-radius:4px}
+.line{white-space:pre-wrap;word-break:break-word}
+.muted{color:var(--green-dim)}
+.amber{color:var(--amber)}
+.cyan{color:var(--cyan)}
+.white{color:var(--white)}
+.head{color:var(--amber);text-shadow:0 0 8px rgba(255,180,84,.5)}
+.cmd{color:var(--white)}
+.ok{color:var(--green)}
+.ascii{color:var(--green);line-height:1;font-size:clamp(10px,2.6vw,20px);text-shadow:0 0 10px rgba(61,255,122,.5);margin:4px 0 10px}
+a.link{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
+a.link:hover{background:var(--cyan);color:#031006}
+.chip{display:inline-block;border:1px solid var(--green-dim);padding:0 8px;margin:3px 6px 3px 0;cursor:pointer;color:var(--green);font-family:var(--ui);font-size:13px;transition:.1s}
+.chip:hover{background:var(--green);color:#031006;box-shadow:0 0 10px var(--green)}
+
+.prompt{display:flex;align-items:center;gap:8px;border-top:1px solid rgba(61,255,122,.25);padding-top:12px;margin-top:6px}
+.ps1{color:var(--green-dim);white-space:nowrap}
+.ps1 b{color:var(--green)}
+#inp{flex:1;background:transparent;border:none;outline:none;color:var(--white);font-family:var(--term);font-size:22px;caret-color:transparent}
+.curs{width:11px;height:20px;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.hintbar{font-family:var(--ui);font-size:11px;color:var(--green-dim);margin-top:8px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<div class="scan"></div><div class="vig"></div><div class="flick"></div>
+
+<div class="screen">
+  <div class="titlebar">
+    <span>victor@vss — /home/victor — 80×24</span>
+    <span class="dots"><i class="on"></i><i></i><i></i></span>
+  </div>
+  <div class="out" id="out"></div>
+  <div class="prompt">
+    <span class="ps1"><b>victor@vss</b>:~$</span>
+    <input id="inp" autocomplete="off" spellcheck="false" autofocus>
+    <span class="curs" id="curs"></span>
+  </div>
+  <div class="hintbar" id="hint">type <b>help</b> and press enter — or click a command below</div>
+</div>
+
+<script>
+const out=document.getElementById('out');
+const inp=document.getElementById('inp');
+const ASCII =
+" __   __ ___  ___  ___  ___  ___ \n"+
+" \\ \\ / // __|/ __|/ __||   \\| __|\n"+
+"  \\ V / \\__ \\\\__ \\\\__ \\| |) | _| \n"+
+"   \\_/  |___/|___/|___/|___/|___|\n";
+
+const SECTIONS = {
+  about: [
+    ['head','# whoami'],
+    ['line','Victor Santos — full-stack developer.'],
+    ['line','I build clean APIs, fast interfaces, and small tools I would'],
+    ['line','actually use myself. This site is a terminal because the work is.'],
+    ['line',''],
+    ['muted','status : '],['ok','AVAILABLE FOR WORK'],
+    ['line','remote : friendly · relocate : for the right team'],
+  ],
+  changelog: [
+    ['head','# cat career.changelog'],
+    ['amber','[UNRELEASED] in progress'],
+    ['line','  + shipping vss.dev (hand-built, no frameworks)'],
+    ['line','  + interviewing for backend / full-stack roles'],
+    ['line','  + reading Designing Data-Intensive Applications'],
+    ['line',''],
+    ['amber','[2026.04] sharpening the saw'],
+    ['line','  + daily algorithms habit, past 90 days'],
+    ['line','  + a home lab for self-hosting & breaking things'],
+    ['line','  ~ comfort with system-design tradeoffs'],
+    ['line',''],
+    ['amber','[2026.01] building, not waiting'],
+    ['line','  ~ reframed the search as a build season'],
+    ['line','  + three side projects, idea to deploy'],
+    ['line',''],
+    ['amber','[2025.07] between roles'],
+    ['line','  ! [previous role] wrapped up'],
+    ['line','  ~ a year off the title is not a year off the craft'],
+  ],
+  now: [
+    ['head','# cat now.md'],
+    ['line','> this week'],
+    ['line','  - polishing vss.dev for launch'],
+    ['line','  - two technical interviews (system design prep)'],
+    ['line','  - getting a test suite under one minute'],
+    ['line','> open to'],
+    ['line','  backend / full-stack roles. teams that ship + care about craft.'],
+  ],
+  writing: [
+    ['head','# ls ./posts'],
+    ['cyan','building-vss-dev.md      '],['line','— one file, no framework, view-source honest'],
+    ['cyan','escaping-the-tutorial-trap.md  '],['line','— tutorials remove the part that teaches you'],
+    ['line',''],
+    ['head','# ls ./tips'],
+    ['line','debug-by-bisection : cut the problem in half, test, repeat.'],
+    ['line','five-minute-rule   : write expected/actual/tried before asking.'],
+  ],
+  contact: [
+    ['head','# cat contact'],
+    ['line','email    : '],['linkmail','fake-email@fake-domain.com'],
+    ['line','github   : '],['linkext','https://github.com/'],
+    ['line','linkedin : '],['linkext','https://linkedin.com/'],
+    ['line',''],
+    ['muted','// mention "changelog" so I know you actually looked around.'],
+  ],
+};
+const HELP = [
+  ['head','available commands:'],
+  ['chips','about','changelog','now','writing','contact','help','clear'],
+  ['muted','tip: ↑/↓ for history · tab to autocomplete'],
+];
+
+function append(type,text){
+  const d=document.createElement('div');
+  if(type==='linkmail'){const a=document.createElement('a');a.className='link';a.href='mailto:'+text;a.textContent=text;const w=document.createElement('span');w.className='line';w.style.display='inline';prevInline(a);return;}
+  d.className='line '+(type||'');
+  d.textContent=text;
+  out.appendChild(d);
+}
+// simpler renderer supporting inline link rows
+function render(rows){
+  rows.forEach(r=>{
+    const [t,...rest]=r;
+    if(t==='chips'){
+      const d=document.createElement('div');d.className='line';
+      rest.forEach(c=>{const s=document.createElement('span');s.className='chip';s.textContent=c;s.onclick=()=>runCmd(c);d.appendChild(s);});
+      out.appendChild(d);return;
+    }
+    if(t==='linkmail'||t==='linkext'){
+      const last=out.lastElementChild;
+      const a=document.createElement('a');a.className='link';
+      a.href=(t==='linkmail'?'mailto:':'')+rest[0];a.textContent=rest[0];
+      if(t==='linkext'){a.target='_blank';a.rel='noopener';}
+      if(last&&last.dataset.open){last.appendChild(a);last.removeAttribute('data-open');} else {const d=document.createElement('div');d.className='line';d.appendChild(a);out.appendChild(d);}
+      return;
+    }
+    const d=document.createElement('div');d.className='line '+t;
+    // allow a following inline link by marking open if text ends with ': '
+    if(/:\s$/.test(rest[0])) d.dataset.open='1';
+    d.textContent=rest[0];
+    out.appendChild(d);
+  });
+  out.scrollTop=out.scrollHeight;
+}
+function echo(cmd){
+  const d=document.createElement('div');d.className='line';
+  d.innerHTML='<span class="ps1" style="color:var(--green-dim)"><b style="color:var(--green)">victor@vss</b>:~$</span> <span class="cmd">'+cmd.replace(/</g,'&lt;')+'</span>';
+  out.appendChild(d);
+}
+function blank(){const d=document.createElement('div');d.className='line';d.innerHTML='&nbsp;';out.appendChild(d);}
+
+const CMDS=Object.keys(SECTIONS).concat(['help','clear','ls','sudo']);
+let history=[],hi=-1;
+
+function runCmd(raw){
+  const cmd=raw.trim().toLowerCase();
+  if(cmd==='')return;
+  echo(raw);
+  history.push(raw);hi=history.length;
+  if(cmd==='clear'){out.innerHTML='';return;}
+  if(cmd==='help'){render(HELP);blank();return;}
+  if(cmd==='sudo'||cmd.startsWith('sudo')){render([['amber','nice try. victor is not in the sudoers file. this incident will be reported. :)']]);blank();return;}
+  if(cmd==='ls'){render([['cyan','about  changelog  now  writing  contact'],['muted','5 readable sections — `cat` any of them']]);blank();return;}
+  const key=cmd.replace(/^cat\s+/,'').replace(/\.md$/,'').replace(/\.changelog$/,'');
+  if(SECTIONS[key]){render(SECTIONS[key]);blank();}
+  else{render([['amber','command not found: '+cmd],['muted','type `help` for the list']]);blank();}
+}
+
+inp.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){runCmd(inp.value);inp.value='';}
+  else if(e.key==='ArrowUp'){if(hi>0){hi--;inp.value=history[hi]||'';}e.preventDefault();}
+  else if(e.key==='ArrowDown'){if(hi<history.length-1){hi++;inp.value=history[hi]||'';}else{hi=history.length;inp.value='';}e.preventDefault();}
+  else if(e.key==='Tab'){e.preventDefault();const m=CMDS.find(c=>c.startsWith(inp.value.toLowerCase()));if(m)inp.value=m;}
+});
+document.addEventListener('click',()=>inp.focus());
+
+/* boot sequence */
+const BOOT=[
+  ['muted','VSS-OS 26.04 (tty1)'],
+  ['muted','booting personal kernel ......... '],['ok','OK'],
+  ['muted','mounting /career ................ '],['ok','OK'],
+  ['muted','loading changelog ............... '],['ok','OK'],
+  ['muted','status: available for work ...... '],['ok','OK'],
+];
+async function boot(){
+  for(const [t,x] of BOOT){
+    const last=out.lastElementChild;
+    if(t==='ok'&&last){last.innerHTML+='<span style="color:var(--green)">'+x+'</span>';}
+    else {const d=document.createElement('div');d.className='line '+t;d.textContent=x;out.appendChild(d);}
+    await sleep(160);
+  }
+  await sleep(250);
+  const a=document.createElement('pre');a.className='ascii';a.textContent=ASCII;out.appendChild(a);
+  render([['white','Victor Santos · full-stack developer · building in public'],['muted','—'.repeat(46)]]);
+  render(HELP);blank();
+  out.scrollTop=out.scrollHeight;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+boot();
+</script>
+</body>
+</html>

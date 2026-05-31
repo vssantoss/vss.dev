@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Victor Santos ✦ Developer</title>
+<meta name="description" content="Victor Santos — full-stack developer. Bold, playful, and shipping. Career changelog, writing, contact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fdf3e3; --ink:#161412; --red:#ff4438; --blue:#2f57ff; --yellow:#ffcf2e; --green:#15b86a; --pink:#ff7eb6;
+  --disp:'Syne',sans-serif; --body:'Bricolage Grotesque',sans-serif;
+  --bd:3px solid var(--ink); --sh:6px 6px 0 var(--ink);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:var(--ink);color:var(--yellow)}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;overflow-x:hidden;
+  background-image:radial-gradient(var(--ink) 1.2px,transparent 1.2px);background-size:26px 26px;background-position:-13px -13px}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.disp{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:.95}
+
+/* marquee */
+.tape{background:var(--ink);color:var(--yellow);font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;padding:10px 0;overflow:hidden;white-space:nowrap;border-bottom:var(--bd)}
+.tape .run{display:inline-block;animation:run 22s linear infinite}
+.tape span{margin:0 22px}.tape b{color:var(--pink)}
+@keyframes run{to{transform:translateX(-50%)}}
+
+/* nav */
+nav{position:sticky;top:0;z-index:30;background:var(--cream);border-bottom:var(--bd);display:flex;align-items:center;justify-content:space-between;padding:14px 24px}
+nav .brand{font-family:var(--disp);font-weight:800;font-size:24px}
+nav .brand i{color:var(--red);font-style:normal}
+nav .nl{display:flex;gap:8px;flex-wrap:wrap}
+nav .nl a{font-family:var(--disp);font-weight:700;font-size:13px;text-transform:uppercase;padding:7px 14px;border:var(--bd);border-radius:30px;transition:.12s}
+nav .nl a:hover{background:var(--yellow);transform:rotate(-2deg)}
+@media(max-width:680px){nav .nl{display:none}}
+
+/* hero */
+.hero{padding:60px 0 40px;position:relative}
+.hero .pill{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:var(--ink);border:var(--bd);border-radius:30px;padding:6px 16px;font-family:var(--disp);font-weight:700;font-size:13px;text-transform:uppercase;box-shadow:var(--sh)}
+.hero .pill .dot{width:10px;height:10px;border-radius:50%;background:var(--ink);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.hero h1{font-family:var(--disp);font-weight:800;font-size:clamp(3.2rem,13vw,10rem);line-height:.86;margin:24px 0 10px;letter-spacing:-.03em}
+.hero h1 .a{color:var(--red)}.hero h1 .b{color:var(--blue);display:inline-block}
+.hero .lead{font-size:clamp(1.1rem,2.4vw,1.5rem);max-width:30ch;font-weight:500}
+.shape{position:absolute;border:var(--bd);box-shadow:var(--sh)}
+.sh1{width:90px;height:90px;border-radius:50%;background:var(--yellow);top:50px;right:6%;animation:float 5s ease-in-out infinite}
+.sh2{width:70px;height:70px;background:var(--blue);top:200px;right:22%;transform:rotate(20deg);animation:float 6s ease-in-out infinite .5s}
+.sh3{width:0;height:0;border:none;box-shadow:none;border-left:46px solid transparent;border-right:46px solid transparent;border-bottom:80px solid var(--pink);filter:drop-shadow(5px 5px 0 var(--ink));bottom:30px;right:12%;animation:float 7s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-18px) rotate(8deg)}}
+@media(max-width:680px){.shape{display:none}}
+
+/* section title */
+.st{font-family:var(--disp);font-weight:800;font-size:clamp(1.8rem,6vw,3.4rem);margin:60px 0 26px;display:inline-block;position:relative}
+.st::after{content:"";position:absolute;left:0;right:-6px;bottom:6px;height:14px;background:var(--yellow);z-index:-1}
+.st.r::after{background:var(--pink)}.st.b::after{background:var(--blue);opacity:.4}
+
+/* changelog cards */
+.logs{display:grid;gap:22px}
+.lg{border:var(--bd);border-radius:18px;box-shadow:var(--sh);background:#fff;overflow:hidden;transition:.15s}
+.lg:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--ink)}
+.lg .bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:16px 22px;border-bottom:var(--bd)}
+.lg .bar .v{font-family:var(--disp);font-weight:800;font-size:1.8rem}
+.lg .bar .t{font-family:var(--disp);font-weight:700;font-size:12px;text-transform:uppercase;background:var(--ink);color:var(--cream);padding:5px 12px;border-radius:20px}
+.lg.live .bar{background:var(--yellow)}
+.lg .in{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px 30px}
+.lg .grp h4{font-family:var(--disp);font-weight:700;font-size:12px;text-transform:uppercase;color:var(--red);margin-bottom:4px}
+.lg .grp ul{list-style:none}
+.lg .grp li{padding-left:20px;position:relative;margin:3px 0;font-size:15.5px}
+.lg .grp li::before{content:"●";position:absolute;left:0;font-size:8px;top:7px;color:var(--blue)}
+.lg em{font-style:normal;background:var(--yellow);padding:0 4px;border-radius:3px}
+@media(max-width:560px){.lg .in{grid-template-columns:1fr}}
+
+/* now + tips cards row */
+.cards{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+@media(max-width:760px){.cards{grid-template-columns:1fr}}
+.card{border:var(--bd);border-radius:18px;box-shadow:var(--sh);padding:24px;background:#fff}
+.card.y{background:var(--yellow)}.card.b{background:var(--blue);color:var(--cream)}.card.p{background:var(--pink)}
+.card h3{font-family:var(--disp);font-weight:800;font-size:1.5rem;margin-bottom:14px}
+.card ul{list-style:none}
+.card li{padding:9px 0;border-bottom:2px solid rgba(22,20,18,.18);font-weight:500;display:flex;gap:10px}
+.card li:last-child{border-bottom:none}
+.card li .e{font-size:18px}
+.tipgrid{display:grid;gap:14px}
+.minicard{border:var(--bd);border-radius:14px;padding:16px 18px;background:#fff;box-shadow:4px 4px 0 var(--ink)}
+.minicard h4{font-family:var(--disp);font-weight:700;font-size:1.05rem;margin-bottom:4px}
+.minicard p{font-size:14.5px;color:#3a3631}
+
+/* writing chips */
+.posts{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px}
+@media(max-width:680px){.posts{grid-template-columns:1fr}}
+.pcard{border:var(--bd);border-radius:18px;box-shadow:var(--sh);background:#fff;padding:24px;transition:.15s;display:block}
+.pcard:nth-child(2){background:var(--pink)}
+.pcard:hover{transform:rotate(-1.5deg) translateY(-3px)}
+.pcard .k{font-family:var(--disp);font-weight:700;font-size:11px;text-transform:uppercase;background:var(--ink);color:var(--cream);padding:4px 10px;border-radius:20px;display:inline-block}
+.pcard h3{font-family:var(--disp);font-weight:800;font-size:1.5rem;margin:14px 0 8px;line-height:1.05}
+.pcard p{font-weight:500}
+.pcard .arrow{font-family:var(--disp);font-weight:800;font-size:22px;margin-top:12px;display:inline-block}
+
+/* contact */
+.contact{border:var(--bd);border-radius:24px;background:var(--red);color:var(--cream);box-shadow:8px 8px 0 var(--ink);padding:clamp(34px,7vw,70px);margin:70px 0 40px;text-align:center;position:relative;overflow:hidden}
+.contact h2{font-family:var(--disp);font-weight:800;font-size:clamp(2.4rem,8vw,5.5rem);line-height:.9;margin-bottom:18px}
+.contact p{max-width:44ch;margin:0 auto 30px;font-weight:500;font-size:1.1rem}
+.contact .btns{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.contact .btns a{font-family:var(--disp);font-weight:800;font-size:15px;text-transform:uppercase;background:var(--cream);color:var(--ink);border:var(--bd);border-radius:30px;padding:14px 28px;box-shadow:4px 4px 0 var(--ink);transition:.12s}
+.contact .btns a:hover{transform:translateY(-3px);box-shadow:4px 7px 0 var(--ink);background:var(--yellow)}
+footer{text-align:center;font-family:var(--disp);font-weight:700;font-size:13px;text-transform:uppercase;padding:20px 0 50px;color:#3a3631}
+
+.reveal{opacity:0;transform:translateY(24px);transition:.6s cubic-bezier(.2,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="tape"><div class="run">
+  <span>✦ OPEN TO WORK</span><span>FULL-STACK DEVELOPER</span><span><b>BUILDING IN PUBLIC</b></span><span>SHIPPING &gt; TALKING</span><span>REMOTE-FRIENDLY</span>
+  <span>✦ OPEN TO WORK</span><span>FULL-STACK DEVELOPER</span><span><b>BUILDING IN PUBLIC</b></span><span>SHIPPING &gt; TALKING</span><span>REMOTE-FRIENDLY</span>
+</div></div>
+
+<nav>
+  <a class="brand" href="#">vss<i>.</i>dev</a>
+  <div class="nl"><a href="#log">Changelog</a><a href="#now">Now</a><a href="#writing">Writing</a><a href="#contact">Contact</a></div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="pill"><span class="dot"></span> Available for work</span>
+    <h1>Victor<br><span class="a">San</span><span class="b">tos</span></h1>
+    <p class="lead">Full-stack developer building loud, useful things for the web — in public.</p>
+    <div class="shape sh1"></div><div class="shape sh2"></div><div class="shape sh3"></div>
+  </header>
+
+  <section class="reveal" id="log">
+    <h2 class="st">★ Career Changelog</h2>
+    <div class="logs">
+      <div class="lg live"><div class="bar"><span class="v">Unreleased</span><span class="t">In progress</span></div>
+        <div class="in">
+          <div class="grp"><h4>In progress</h4><ul><li>Shipping <em>vss.dev</em>, no frameworks</li><li>Interviewing for dev roles</li><li>Reading DDIA cover to cover</li></ul></div>
+          <div class="grp"><h4>Goals</h4><ul><li>Open-source a daily-use tool</li><li>One essay a week</li></ul></div>
+        </div>
+      </div>
+      <div class="lg"><div class="bar"><span class="v">2026.04</span><span class="t">Sharpening the saw</span></div>
+        <div class="in">
+          <div class="grp"><h4>Added</h4><ul><li>Daily algorithms — 90+ days</li><li>A home lab for self-hosting</li></ul></div>
+          <div class="grp"><h4>Learned</h4><ul><li>System-design tradeoffs, out loud</li><li>I think clearer in public</li></ul></div>
+        </div>
+      </div>
+      <div class="lg"><div class="bar"><span class="v">2026.01</span><span class="t">Building, not waiting</span></div>
+        <div class="in">
+          <div class="grp"><h4>Changed</h4><ul><li>Search → a build season</li><li>Ship proof, then apply</li></ul></div>
+          <div class="grp"><h4>Added</h4><ul><li>3 projects, idea → deploy</li><li>A writing practice</li></ul></div>
+        </div>
+      </div>
+      <div class="lg"><div class="bar"><span class="v">2025.07</span><span class="t">Between roles</span></div>
+        <div class="in">
+          <div class="grp"><h4>Context</h4><ul><li><em>[Previous role]</em> wrapped</li><li>Two weeks to rest first</li></ul></div>
+          <div class="grp"><h4>Learned</h4><ul><li>Rest is part of the work</li><li>Off the title ≠ off the craft</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal" id="now">
+    <h2 class="st b">⚡ Now + Notes</h2>
+    <div class="cards">
+      <div class="card y"><h3>This week</h3><ul>
+        <li><span class="e">🚀</span> Polishing vss.dev for launch</li>
+        <li><span class="e">🧠</span> Two technical interviews</li>
+        <li><span class="e">⏱️</span> Tests under one minute</li>
+        <li><span class="e">📖</span> Reading on the side</li>
+      </ul></div>
+      <div class="tipgrid">
+        <div class="minicard"><h4>Debug by bisection</h4><p>Cut the problem in half, test, repeat. Ten halvings clears a thousand lines.</p></div>
+        <div class="minicard"><h4>The five-minute rule</h4><p>Write expected / actual / tried before asking. Half the time, that's the fix.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal" id="writing">
+    <h2 class="st r">✎ Writing</h2>
+    <div class="posts">
+      <a class="pcard" href="#contact"><span class="k">Building</span><h3>Building vss.dev from one file</h3><p>No framework. No build step. View-source honest.</p><span class="arrow">→</span></a>
+      <a class="pcard" href="#contact"><span class="k">Learning</span><h3>Escaping the tutorial trap</h3><p>Tutorials remove the one thing that teaches you: getting stuck.</p><span class="arrow">→</span></a>
+    </div>
+  </section>
+
+  <section class="reveal contact" id="contact">
+    <h2>Let's<br>ship it.</h2>
+    <p>Available now · remote-friendly · happy to relocate. Mention <b>changelog</b> so I know you read this far!</p>
+    <div class="btns">
+      <a href="mailto:fake-email@fake-domain.com">Email ↗</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub ↗</a>
+      <a href="https://linkedin.com/" target="_blank" rel="noopener">LinkedIn ↗</a>
+    </div>
+  </section>
+
+  <footer>© 2026 Victor Santos · Set in Syne + Bricolage Grotesque</footer>
+
+</div>
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

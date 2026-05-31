@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vss.dev — choose a design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0b10; --panel:#16151c; --panel-2:#1d1c25; --border:#2a2833;
+  --fg:#ece9f0; --dim:#9a96a6; --faint:#5b5867; --accent:#ff8a4c;
+  --mono:'JetBrains Mono',monospace; --serif:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:var(--accent);color:#1a1208}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);line-height:1.6;
+  background-image:radial-gradient(700px 400px at 12% -5%,rgba(255,138,76,.13),transparent 60%),radial-gradient(700px 500px at 100% 110%,rgba(86,194,192,.1),transparent 55%);
+  min-height:100vh}
+.wrap{max-width:1200px;margin:0 auto;padding:60px 28px 80px}
+header{text-align:center;margin-bottom:54px}
+header .kick{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent)}
+header h1{font-family:var(--serif);font-weight:560;font-size:clamp(2.4rem,6vw,4rem);line-height:1.04;letter-spacing:-.02em;margin:14px 0}
+header p{color:var(--dim);max-width:60ch;margin:0 auto;font-size:14.5px}
+header p b{color:var(--fg)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;transition:.2s cubic-bezier(.16,1,.3,1)}
+.card:hover{transform:translateY(-5px);border-color:var(--accent);box-shadow:0 24px 50px -24px rgba(0,0,0,.7)}
+.thumb{height:184px;position:relative;overflow:hidden;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.meta{padding:18px 20px 20px}
+.meta .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.meta h2{font-family:var(--serif);font-weight:540;font-size:1.45rem}
+.meta .no{font-size:11px;color:var(--faint)}
+.meta .desc{color:var(--dim);font-size:13px;line-height:1.6}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.tag{font-size:10.5px;letter-spacing:.04em;color:var(--dim);background:var(--panel-2);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
+.open{margin-top:16px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:6px}
+.card:hover .open{gap:11px}
+
+/* ---- mini thumbnail mockups (pure CSS) ---- */
+.t-editor{background:#1a191f}
+.t-editor .bar{position:absolute;top:0;left:0;right:0;height:22px;background:#121117;display:flex;align-items:center;gap:5px;padding:0 9px;border-bottom:1px solid #2a2833}
+.t-editor .bar i{width:8px;height:8px;border-radius:50%}
+.t-editor .ln{position:absolute;left:14px;top:40px}
+.t-editor .ln span{display:block;width:var(--w);height:7px;border-radius:3px;background:#2a2833;margin-bottom:9px}
+.t-editor .ln span.a{background:#ff8a4c}.t-editor .ln span.t{background:#56c2c0}
+.t-editor .side{position:absolute;left:0;top:22px;bottom:0;width:42px;background:#121117;border-right:1px solid #2a2833}
+
+.t-editorial{background:#f6f1e6;color:#1c1916;font-family:'Fraunces',serif}
+.t-editorial .h{position:absolute;top:24px;left:0;right:0;text-align:center;font-family:'Fraunces',serif;font-weight:600;font-size:30px;letter-spacing:-.02em}
+.t-editorial .sub{position:absolute;top:64px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#8c2f1f}
+.t-editorial .cols{position:absolute;top:90px;left:24px;right:24px;display:flex;gap:14px}
+.t-editorial .cols div{flex:1}
+.t-editorial .cols span{display:block;height:4px;background:#cabfa7;margin-bottom:6px;border-radius:2px}
+.t-editorial .rule{position:absolute;left:24px;right:24px;top:80px;border-top:2px double #1c1916}
+
+.t-brutal{background:#e9e7df;color:#0a0a0a}
+.t-brutal .name{position:absolute;top:28px;left:16px;right:16px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:38px;line-height:.8;letter-spacing:-.03em}
+.t-brutal .name b{color:#1f1fe6}
+.t-brutal .box{position:absolute;left:16px;right:16px;bottom:18px;height:44px;border:2px solid #0a0a0a;display:flex}
+.t-brutal .box span{flex:1;border-right:2px solid #0a0a0a}.t-brutal .box span:last-child{border:none}
+.t-brutal .tk{position:absolute;top:0;left:0;right:0;height:16px;background:#0a0a0a;color:#e9e7df;font-family:var(--mono);font-size:8px;display:flex;align-items:center;padding:0 8px;letter-spacing:.1em}
+
+.t-terminal{background:radial-gradient(circle at 50% 40%,#0a1a0d,#040a05);color:#3dff7a;font-family:var(--mono)}
+.t-terminal::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.3) 2px 3px)}
+.t-terminal .txt{position:absolute;top:26px;left:18px;right:18px;font-size:9px;line-height:1.7;text-shadow:0 0 6px rgba(61,255,122,.6)}
+.t-terminal .txt b{color:#ffb454}
+.t-terminal .cur{display:inline-block;width:6px;height:10px;background:#3dff7a;vertical-align:-1px;animation:bk 1s steps(1) infinite}
+@keyframes bk{50%{opacity:0}}
+
+.t-luxury{background:#0b0b0d;color:#e9e3d6}
+.t-luxury .lbl{position:absolute;top:34px;left:24px;font-family:var(--mono);font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:#c6a667}
+.t-luxury .big{position:absolute;top:52px;left:24px;font-family:'Fraunces',serif;font-weight:300;font-size:46px;line-height:.9}
+.t-luxury .big em{font-style:italic;color:#e6cf9c}
+.t-luxury .ln{position:absolute;bottom:30px;left:24px;right:24px;border-top:1px solid #26241f}
+
+.t-neopop{background:#fdf3e3;color:#161412;background-image:radial-gradient(#161412 1px,transparent 1px);background-size:16px 16px}
+.t-neopop .big{position:absolute;top:40px;left:18px;font-family:'Syne','JetBrains Mono',sans-serif;font-weight:800;font-size:44px;line-height:.85;letter-spacing:-.03em}
+.t-neopop .big .r{color:#ff4438}.t-neopop .big .b{color:#2f57ff}
+.t-neopop .circ{position:absolute;width:40px;height:40px;border-radius:50%;background:#ffcf2e;border:3px solid #161412;box-shadow:4px 4px 0 #161412;top:24px;right:24px}
+.t-neopop .pill{position:absolute;bottom:24px;left:18px;background:#15b86a;border:3px solid #161412;border-radius:20px;font-family:var(--mono);font-size:9px;font-weight:700;padding:4px 12px;box-shadow:3px 3px 0 #161412}
+
+footer{text-align:center;margin-top:52px;color:var(--faint);font-size:12px}
+footer code{color:var(--dim)}
+.note{margin-top:40px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:18px 22px;color:var(--dim);font-size:13px;max-width:760px}
+.note b{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="kick">vss.dev · six directions</span>
+    <h1>Pick a look — or mix what you like.</h1>
+    <p>Same content in every one: an intro, the <b>Career Changelog</b>, a Now section, posts, tips, and contact. Click any card to open it full-screen. Tell me which one (or which <i>parts</i> of which) and I'll make it the real <code>index.html</code>.</p>
+  </header>
+
+  <div class="grid">
+
+    <a class="card" href="codeeditor.html">
+      <div class="thumb t-editor">
+        <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+        <div class="side"></div>
+        <div class="ln"><span class="a" style="--w:90px"></span><span style="--w:130px"></span><span style="--w:60px"></span><span class="t" style="--w:110px"></span><span style="--w:140px"></span><span style="--w:80px"></span></div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>Code Editor</h2><span class="no">01 — interactive</span></div>
+        <p class="desc">Your site <i>is</i> an IDE. File tree, tabs, command palette (⌘K), source↔preview, dark/light themes. The current index.html.</p>
+        <div class="tags"><span class="tag">JetBrains Mono</span><span class="tag">Fraunces</span><span class="tag">warm dark</span><span class="tag">most "dev"</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+    <a class="card" href="editorial.html">
+      <div class="thumb t-editorial">
+        <div class="h">Victor Santos</div><div class="rule"></div><div class="sub">Full-Stack Developer</div>
+        <div class="cols"><div><span style="width:100%"></span><span style="width:90%"></span><span style="width:95%"></span><span style="width:70%"></span></div><div><span style="width:95%"></span><span style="width:100%"></span><span style="width:60%"></span><span style="width:88%"></span></div></div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>Editorial</h2><span class="no">02 — broadsheet</span></div>
+        <p class="desc">A refined personal gazette. Big serif masthead, justified columns, drop cap, the changelog set as a printed ledger.</p>
+        <div class="tags"><span class="tag">DM Serif Display</span><span class="tag">Spectral</span><span class="tag">warm paper</span><span class="tag">classy</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+    <a class="card" href="brutalist.html">
+      <div class="thumb t-brutal">
+        <div class="tk">★ OPEN TO WORK · FULL-STACK DEVELOPER · BUILDING IN PUBLIC</div>
+        <div class="name">VICTOR<br>SAN<b>TOS</b></div>
+        <div class="box"><span></span><span></span><span></span></div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>Brutalist</h2><span class="no">03 — raw grid</span></div>
+        <p class="desc">Stark Swiss grid, oversized type, hard borders, a ticker, invert-on-hover. Loud, confident, zero fluff.</p>
+        <div class="tags"><span class="tag">Archivo</span><span class="tag">JetBrains Mono</span><span class="tag">electric blue</span><span class="tag">bold</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+    <a class="card" href="terminal.html">
+      <div class="thumb t-terminal">
+        <div class="txt">VSS-OS 26.04 (tty1)<br><b>$</b> cat career.changelog<br>[UNRELEASED] in progress<br>&nbsp;&nbsp;+ shipping vss.dev<br><b>victor@vss</b>:~$ <span class="cur"></span></div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>CRT Terminal</h2><span class="no">04 — playable</span></div>
+        <p class="desc">A real terminal you type in. Boot sequence, scanlines, phosphor glow. Type <code>cat changelog</code>, <code>help</code>, <code>ls</code>.</p>
+        <div class="tags"><span class="tag">VT323</span><span class="tag">phosphor green</span><span class="tag">interactive</span><span class="tag">nerd-bait</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+    <a class="card" href="luxury.html">
+      <div class="thumb t-luxury">
+        <div class="lbl">Full-Stack Developer</div>
+        <div class="big">Victor<br><em>Santos</em></div>
+        <div class="ln"></div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>Luxury Minimal</h2><span class="no">05 — refined</span></div>
+        <p class="desc">Quiet, expensive, lots of air. Thin italic serif, gold on near-black, the changelog as an elegant vertical timeline.</p>
+        <div class="tags"><span class="tag">Cormorant Garamond</span><span class="tag">Jost</span><span class="tag">gold / black</span><span class="tag">premium</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+    <a class="card" href="neopop.html">
+      <div class="thumb t-neopop">
+        <div class="circ"></div>
+        <div class="big">Victor<br><span class="r">San</span><span class="b">tos</span></div>
+        <div class="pill">● Available</div>
+      </div>
+      <div class="meta">
+        <div class="row"><h2>Neo-Pop</h2><span class="no">06 — playful</span></div>
+        <p class="desc">Bauhaus energy: primary colors, thick outlines, sticker cards, floating shapes, a marquee. Memorable and fun.</p>
+        <div class="tags"><span class="tag">Syne</span><span class="tag">Bricolage Grotesque</span><span class="tag">bold color</span><span class="tag">friendly</span></div>
+        <div class="open">Open full-screen →</div>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="note">
+    <b>Want to mix?</b> You can absolutely take, say, the Terminal's hero + the Editor's content model, or the Luxury timeline inside the Editorial layout. Just tell me the combination and I'll build the single final <code>index.html</code> from it. All six are placeholder-ready — search each file for bracketed <code>[…]</code> bits (GitHub/LinkedIn URLs, dates, previous role) to personalize.
+  </div>
+
+  <footer>vss.dev · six takes on one developer · built as single HTML files, no dependencies</footer>
+</div>
+</body>
+</html>
