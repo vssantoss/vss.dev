@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block listing %}
+  <h2>Files</h2>
+  <ul>
+  {% for p in section.pages %}
+    <li><a href="{{ p.permalink | safe }}">{{ p.extra.filename | default(value=p.title) }}</a>{% if p.description %}: {{ p.description }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+{% endblock %}

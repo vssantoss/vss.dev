@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block listing %}
+  <h1>#{{ term.name }}</h1>
+  <p>Everything tagged <strong>{{ term.name }}</strong>.</p>
+  <ul>
+  {% for p in term.pages %}
+    <li><a href="{{ p.permalink | safe }}">{{ p.title }}</a>{% if p.description %}: {{ p.description }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+{% endblock %}

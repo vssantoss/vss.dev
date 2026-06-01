@@ -1,0 +1,27 @@
+# Zola configuration: https://www.getzola.org/documentation/getting-started/configuration/
+base_url = "https://vss.dev"
+title = "Victor Santos"
+description = "Victor Santos, full-stack developer. Posts, tips, and a career changelog, browsable as a code editor."
+default_language = "en"
+
+# SEO essentials Zola gives us for free
+generate_feeds = true
+feed_filenames = ["rss.xml"]
+# sitemap.xml is generated automatically
+
+compile_sass = false
+build_search_index = false
+
+taxonomies = [{ name = "tags", feed = true }]
+
+[markdown]
+# We style code blocks ourselves in editor.css; no server-side highlighting.
+smart_punctuation = false
+
+[extra]
+author = "Victor Santos"
+github = "https://github.com/vssantoss"
+linkedin = "https://www.linkedin.com/in/victorssantos/"
+status = "Open to work"
+# Email intentionally NOT stored here. Kept off the site (and repo) to avoid
+# scrapers. A contact form is planned; see content/contact.md.

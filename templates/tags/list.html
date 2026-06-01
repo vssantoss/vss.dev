@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block listing %}
+  <h1>Tags</h1>
+  <p>Browse by tag.</p>
+  <ul>
+  {% for term in terms %}
+    <li><a href="{{ term.permalink | safe }}">#{{ term.name }}</a> ({{ term.pages | length }})</li>
+  {% endfor %}
+  </ul>
+{% endblock %}

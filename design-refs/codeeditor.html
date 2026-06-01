@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vss.dev — Victor Santos</title>
-<meta name="description" content="Victor Santos — full-stack developer. A personal site built as a code editor: posts, tips, and a Career Changelog.">
+<title>vss.dev - Victor Santos</title>
+<meta name="description" content="Victor Santos - full-stack developer. A personal site built as a code editor: posts, tips, and a Career Changelog.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400&display=swap" rel="stylesheet">
@@ -379,7 +379,7 @@ html[data-theme="paper"] .statusbar{color:#fff}
   <div class="titlebar">
     <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
     <div class="who">
-      <b>vss.dev</b><span class="sep path">—</span><span class="path" id="title-path">README.md</span>
+      <b>vss.dev</b><span class="sep path">-</span><span class="path" id="title-path">README.md</span>
     </div>
     <div class="right">
       <button class="iconbtn" id="btn-palette" title="Open file (Ctrl/⌘ K)" aria-label="Command palette">
@@ -472,31 +472,31 @@ html[data-theme="paper"] .statusbar{color:#fff}
 
 ---
 
-Hi — I'm Victor. I build software for the web: clean APIs, interfaces
+Hi - I'm Victor. I build software for the web: clean APIs, interfaces
 that feel fast, and small tools I'd actually want to use myself.
 
-This site is my workspace, in public. There's no landing page — you're
+This site is my workspace, in public. There's no landing page - you're
 looking at an editor, and every section is a file you can open. Notes
 I'm taking, things I'm shipping, and an honest log of how my craft is
 evolving.
 
 ## What I work on
 
-- **Backend** — designing services, APIs, and the data layer underneath them
-- **Frontend** — semantic HTML, modern CSS, and JavaScript without the ceremony
-- **The glue** — the unglamorous, important parts: CI, deploys, observability
+- **Backend** - designing services, APIs, and the data layer underneath them
+- **Frontend** - semantic HTML, modern CSS, and JavaScript without the ceremony
+- **The glue** - the unglamorous, important parts: CI, deploys, observability
 
 ## Start here
 
-- [now.md](now.md) — what I'm focused on this week
-- [CHANGELOG.md](CHANGELOG.md) — the **Career Changelog**: how I've spent the last year
-- [posts/building-vss-dev.md](posts/building-vss-dev.md) — how this site works
+- [now.md](now.md) - what I'm focused on this week
+- [CHANGELOG.md](CHANGELOG.md) - the **Career Changelog**: how I've spent the last year
+- [posts/building-vss-dev.md](posts/building-vss-dev.md) - how this site works
 
 > The best way to predict the future is to ship it.
 
 ## Find me
 
-- Email — [fake-email@fake-domain.com](mailto:fake-email@fake-domain.com)
+- Email - [fake-email@fake-domain.com](mailto:fake-email@fake-domain.com)
 - More ways to reach me in [contact.md](contact.md)
 </script>
 
@@ -510,7 +510,7 @@ Versions are `YEAR.MONTH`.
 ## [Unreleased]
 
 ### In progress
-- Shipping `vss.dev` — this site, hand-built, no frameworks
+- Shipping `vss.dev` - this site, hand-built, no frameworks
 - Interviewing for backend / full-stack roles
 - Reading *Designing Data-Intensive Applications* (cover to cover this time)
 
@@ -520,10 +520,10 @@ Versions are `YEAR.MONTH`.
 
 ---
 
-## [2026.04] — Sharpening the saw
+## [2026.04] - Sharpening the saw
 
 ### Added
-- A daily algorithms habit — kept the streak past 90 days
+- A daily algorithms habit - kept the streak past 90 days
 - A small home lab for self-hosting and breaking things safely
 
 ### Learned
@@ -531,11 +531,11 @@ Versions are `YEAR.MONTH`.
 - That I think more clearly when I build in public
 
 ### Shipped
-- *[project name]* — *[one line on what it does]*
+- *[project name]* - *[one line on what it does]*
 
 ---
 
-## [2026.01] — Building, not waiting
+## [2026.01] - Building, not waiting
 
 ### Changed
 - Reframed the job search as a **build season**, not a holding pattern
@@ -547,11 +547,11 @@ Versions are `YEAR.MONTH`.
 
 ---
 
-## [2025.07] — Between roles
+## [2025.07] - Between roles
 
 ### Context
 - *[Previous role]* wrapped up
-- Took two weeks to actually rest first — recommended
+- Took two weeks to actually rest first - recommended
 
 ### Learned
 - Rest is part of the work, not a break from it
@@ -566,7 +566,7 @@ Versions are `YEAR.MONTH`.
 
 ## This week
 - Polishing `vss.dev` for launch
-- Two technical interviews — prepping system design
+- Two technical interviews - prepping system design
 - Refactoring *[project]* so the tests run in under a minute
 
 ## Reading / listening
@@ -579,7 +579,7 @@ open → [contact.md](contact.md).
 
 ---
 
-*This is a [now page](https://nownownow.com/about) — a snapshot of the
+*This is a [now page](https://nownownow.com/about) - a snapshot of the
 present, not a status I'll forget to update.*
 </script>
 
@@ -587,7 +587,7 @@ present, not a status I'll forget to update.*
 # Building vss.dev as a code editor
 
 I wanted my site to *be* the thing it talks about. So instead of a hero
-section and a wall of buzzwords, you're looking at an editor — and every
+section and a wall of buzzwords, you're looking at an editor - and every
 part of me is a file you can open.
 
 ## The constraint that made it fun
@@ -596,7 +596,7 @@ One HTML file. No framework, no build step, no dependencies. If I'm going
 to put this on a résumé, the source should be as honest as the content:
 view-source and it's all right there.
 
-That meant writing the pieces myself — a tiny markdown parser, a tab
+That meant writing the pieces myself - a tiny markdown parser, a tab
 system, a command palette, a syntax highlighter for the source view:
 
 ```js
@@ -609,7 +609,7 @@ function openFile(path) {
 
 ## The one detail I care about
 
-The editor chrome is monospaced — that's the costume. But the moment you
+The editor chrome is monospaced - that's the costume. But the moment you
 read a post, the words are set in a serif. Code is for machines; writing
 is for people. Letting those two voices sit side by side is the whole
 idea.
@@ -641,7 +641,7 @@ after I'd been confused on purpose.
 ## What changed
 
 - I stopped fearing the red error text and started reading it
-- My questions got sharper — and so did the answers
+- My questions got sharper - and so did the answers
 - I built things I could actually point to
 
 The checkmarks felt good. The scars taught me more.
@@ -657,7 +657,7 @@ When something breaks and you have no idea where, don't read every line.
 - Repeat. Each step throws away 50% of the search space.
 - A bug hiding in 1,000 lines is ~10 halvings away from caught.
 
-Same trick, different name, lives in `git bisect` — let git binary-search
+Same trick, different name, lives in `git bisect` - let git binary-search
 your commit history for the one that broke things:
 
 ```sh
@@ -673,7 +673,7 @@ Stop guessing. Start halving.
 <script type="text/markdown" id="f-tip-2">
 # The five-minute rule
 
-Before asking anyone — a teammate, a forum, a model — give yourself a
+Before asking anyone - a teammate, a forum, a model - give yourself a
 strict **five minutes** to write down three things:
 
 1. What I expected to happen
@@ -692,9 +692,9 @@ answer.
 
 The fastest ways to reach me.
 
-- **Email** — [fake-email@fake-domain.com](mailto:fake-email@fake-domain.com)
-- **GitHub** — [github.com/victorsantos](https://github.com/)
-- **LinkedIn** — [in/victorsantos](https://linkedin.com/)
+- **Email** - [fake-email@fake-domain.com](mailto:fake-email@fake-domain.com)
+- **GitHub** - [github.com/victorsantos](https://github.com/)
+- **LinkedIn** - [in/victorsantos](https://linkedin.com/)
 
 I read everything that isn't a mass-blast. If you're hiring and you've
 read this far, mention `changelog` in your first message so I know you

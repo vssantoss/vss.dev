@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>victor@vss:~$</title>
-<meta name="description" content="Victor Santos — full-stack developer. A terminal you can actually type in. Career changelog, writing, contact.">
+<meta name="description" content="Victor Santos - full-stack developer. A terminal you can actually type in. Career changelog, writing, contact.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -63,7 +63,7 @@ a.link:hover{background:var(--cyan);color:#031006}
 
 <div class="screen">
   <div class="titlebar">
-    <span>victor@vss — /home/victor — 80×24</span>
+    <span>victor@vss - /home/victor - 80×24</span>
     <span class="dots"><i class="on"></i><i></i><i></i></span>
   </div>
   <div class="out" id="out"></div>
@@ -72,7 +72,7 @@ a.link:hover{background:var(--cyan);color:#031006}
     <input id="inp" autocomplete="off" spellcheck="false" autofocus>
     <span class="curs" id="curs"></span>
   </div>
-  <div class="hintbar" id="hint">type <b>help</b> and press enter — or click a command below</div>
+  <div class="hintbar" id="hint">type <b>help</b> and press enter - or click a command below</div>
 </div>
 
 <script>
@@ -87,7 +87,7 @@ const ASCII =
 const SECTIONS = {
   about: [
     ['head','# whoami'],
-    ['line','Victor Santos — full-stack developer.'],
+    ['line','Victor Santos - full-stack developer.'],
     ['line','I build clean APIs, fast interfaces, and small tools I would'],
     ['line','actually use myself. This site is a terminal because the work is.'],
     ['line',''],
@@ -125,8 +125,8 @@ const SECTIONS = {
   ],
   writing: [
     ['head','# ls ./posts'],
-    ['cyan','building-vss-dev.md      '],['line','— one file, no framework, view-source honest'],
-    ['cyan','escaping-the-tutorial-trap.md  '],['line','— tutorials remove the part that teaches you'],
+    ['cyan','building-vss-dev.md      '],['line','- one file, no framework, view-source honest'],
+    ['cyan','escaping-the-tutorial-trap.md  '],['line','- tutorials remove the part that teaches you'],
     ['line',''],
     ['head','# ls ./tips'],
     ['line','debug-by-bisection : cut the problem in half, test, repeat.'],
@@ -197,7 +197,7 @@ function runCmd(raw){
   if(cmd==='clear'){out.innerHTML='';return;}
   if(cmd==='help'){render(HELP);blank();return;}
   if(cmd==='sudo'||cmd.startsWith('sudo')){render([['amber','nice try. victor is not in the sudoers file. this incident will be reported. :)']]);blank();return;}
-  if(cmd==='ls'){render([['cyan','about  changelog  now  writing  contact'],['muted','5 readable sections — `cat` any of them']]);blank();return;}
+  if(cmd==='ls'){render([['cyan','about  changelog  now  writing  contact'],['muted','5 readable sections - `cat` any of them']]);blank();return;}
   const key=cmd.replace(/^cat\s+/,'').replace(/\.md$/,'').replace(/\.changelog$/,'');
   if(SECTIONS[key]){render(SECTIONS[key]);blank();}
   else{render([['amber','command not found: '+cmd],['muted','type `help` for the list']]);blank();}
@@ -228,7 +228,7 @@ async function boot(){
   }
   await sleep(250);
   const a=document.createElement('pre');a.className='ascii';a.textContent=ASCII;out.appendChild(a);
-  render([['white','Victor Santos · full-stack developer · building in public'],['muted','—'.repeat(46)]]);
+  render([['white','Victor Santos · full-stack developer · building in public'],['muted','-'.repeat(46)]]);
   render(HELP);blank();
   out.scrollTop=out.scrollHeight;
 }
