@@ -238,8 +238,17 @@
     setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
 
   /* ---------- sidebar ---------- */
+  const isSmall = () => window.innerWidth <= 840;
   const toggleSidebar = () => { const s = $("#sidebar"); if (s) s.classList.toggle("collapsed"); };
   if ($("#act-files")) $("#act-files").addEventListener("click", toggleSidebar);
+  // on small screens the sidebar is an overlay; a click outside it dismisses it
+  document.addEventListener("click", (e) => {
+    if (!isSmall()) return;
+    const s = $("#sidebar");
+    if (!s || s.classList.contains("collapsed")) return;
+    if (e.target.closest("#sidebar") || e.target.closest("#act-files")) return;
+    s.classList.add("collapsed");
+  });
 
   /* ---------- command palette ---------- */
   const pbg = $("#palette-bg"), pinput = $("#palette-input"), plist = $("#plist");
