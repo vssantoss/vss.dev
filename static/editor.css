@@ -94,8 +94,7 @@ body{
 .window{
   width:100%;max-width:1180px;height:100%;max-height:780px;
   min-width:360px;min-height:420px;
-  position:relative;
-  resize:both;                       /* drag the bottom-right corner like a real window */
+  position:relative;z-index:2;
   container:window / inline-size;     /* chrome below adapts to THIS width, not the viewport */
   display:flex;flex-direction:column;
   background:var(--bg-window);
@@ -106,6 +105,30 @@ body{
   animation:rise .8s cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.992)}to{opacity:1;transform:none}}
+
+/* ---------- window states (driven by editor.js) ---------- */
+.window.free{position:absolute;margin:0;animation:none}      /* free-floating; geometry set inline */
+.window.maximized{position:fixed;inset:0;width:auto;height:auto;min-width:0;min-height:0;max-width:none;max-height:none;border-radius:0;border:none;animation:none}
+.window.hidden{display:none}
+.window.dragging{transition:none;animation:none;-webkit-user-select:none;user-select:none}
+
+/* resize grips on the frame (created by editor.js); container-type on .window
+   makes it the containing block, so these anchor even while statically placed */
+.win-handle{position:absolute;z-index:5;touch-action:none}
+.win-handle.n{top:-3px;left:10px;right:10px;height:8px;cursor:ns-resize}
+.win-handle.s{bottom:-3px;left:10px;right:10px;height:8px;cursor:ns-resize}
+.win-handle.e{top:10px;bottom:10px;right:-3px;width:8px;cursor:ew-resize}
+.win-handle.w{top:10px;bottom:10px;left:-3px;width:8px;cursor:ew-resize}
+.win-handle.ne{top:-4px;right:-4px;width:16px;height:16px;cursor:nesw-resize}
+.win-handle.sw{bottom:-4px;left:-4px;width:16px;height:16px;cursor:nesw-resize}
+.win-handle.nw{top:-4px;left:-4px;width:16px;height:16px;cursor:nwse-resize}
+.win-handle.se{bottom:-4px;right:-4px;width:16px;height:16px;cursor:nwse-resize}
+.window.maximized .win-handle{display:none}
+
+/* macOS dots are real buttons now */
+.dot{padding:0;cursor:pointer;-webkit-appearance:none;appearance:none;transition:filter .12s}
+.dot:hover{filter:brightness(1.15)}
+.dot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- title bar ---------- */
 .titlebar{
@@ -360,6 +383,30 @@ html[data-theme="paper"] .statusbar{color:#fff}
 .pfoot{padding:8px 14px;border-top:1px solid var(--border-soft);font-size:10.5px;color:var(--text-faint);display:flex;gap:16px}
 .pfoot kbd{font-family:var(--mono);background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
 
+/* ============================== DESKTOP ICONS ============================== */
+/* Full-stage layer behind the window. Transparent + non-interactive so the
+   window stays clickable; only the icons themselves capture pointer events. */
+.desktop{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.desk-icon{
+  position:absolute;pointer-events:auto;width:72px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;padding:9px 5px 7px;
+  background:transparent;border:1px solid transparent;border-radius:11px;cursor:pointer;
+  color:var(--text-dim);font-family:var(--mono);font-size:11px;letter-spacing:.01em;text-align:center;
+  -webkit-appearance:none;appearance:none;touch-action:none;
+  -webkit-user-select:none;user-select:none;transition:background .12s,border-color .12s,color .12s;
+}
+.desk-icon:hover{background:var(--bg-hover);color:var(--text)}
+.desk-icon:focus-visible{outline:none;border-color:var(--accent);color:var(--text)}
+.desk-icon.dragging{z-index:10;background:var(--bg-hover);color:var(--text);box-shadow:0 14px 34px -14px rgba(0,0,0,.6)}
+.desk-icon[hidden]{display:none}
+.desk-glyph{
+  width:44px;height:44px;display:grid;place-items:center;border-radius:12px;
+  background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
+}
+.desk-glyph svg{width:24px;height:24px}
+.desk-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+
 /* ============================== RESPONSIVE ============================== */
 /* Window-relative: the chrome reflows to the window's own width, so dragging
    the window narrow triggers the same overlay layout as a small screen. */
@@ -378,6 +425,13 @@ html[data-theme="paper"] .statusbar{color:#fff}
   .stage{padding:0}
   .window{
     width:100%;height:100%;max-width:none;max-height:none;min-width:0;min-height:0;
-    border-radius:0;border:none;resize:none;
+    border-radius:0;border:none;
   }
+  /* window-management is desktop-only: neutralize controls, grips and icons */
+  .dots .dot{pointer-events:none}
+  .win-handle{display:none}
+  .desktop{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .window,.node,.prose>*,.source .row,.desk-icon{animation:none!important}
 }
