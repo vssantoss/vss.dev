@@ -238,17 +238,31 @@
     setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
 
   /* ---------- sidebar ---------- */
-  const isSmall = () => window.innerWidth <= 840;
-  const toggleSidebar = () => { const s = $("#sidebar"); if (s) s.classList.toggle("collapsed"); };
+  const sidebarEl = $("#sidebar");
+  // The sidebar floats over the content ("mobile"/overlay mode) only when the
+  // window itself is narrow. CSS container queries decide that, so we read the
+  // result back from layout instead of guessing from the viewport width.
+  const isOverlay = () => !!sidebarEl && getComputedStyle(sidebarEl).position === "absolute";
+  const toggleSidebar = () => { if (sidebarEl) sidebarEl.classList.toggle("collapsed"); };
   if ($("#act-files")) $("#act-files").addEventListener("click", toggleSidebar);
-  // on small screens the sidebar is an overlay; a click outside it dismisses it
+  // in overlay mode, a click outside the sidebar dismisses it
   document.addEventListener("click", (e) => {
-    if (!isSmall()) return;
-    const s = $("#sidebar");
-    if (!s || s.classList.contains("collapsed")) return;
+    if (!sidebarEl || !isOverlay() || sidebarEl.classList.contains("collapsed")) return;
     if (e.target.closest("#sidebar") || e.target.closest("#act-files")) return;
-    s.classList.add("collapsed");
+    sidebarEl.classList.add("collapsed");
   });
+  // As the window is resized across the overlay threshold, mirror mobile/desktop:
+  // collapse when it becomes an overlay, reopen when it docks again.
+  let wasOverlay = isOverlay();
+  if (window.ResizeObserver) {
+    const win = $(".window");
+    if (win) new ResizeObserver(() => {
+      const now = isOverlay();
+      if (now === wasOverlay) return;
+      wasOverlay = now;
+      if (sidebarEl) sidebarEl.classList.toggle("collapsed", now);
+    }).observe(win);
+  }
 
   /* ---------- command palette ---------- */
   const pbg = $("#palette-bg"), pinput = $("#palette-input"), plist = $("#plist");
@@ -289,5 +303,5 @@
   markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); updateSeg();
   history.replaceState({ url: CURRENT.url }, "", location.href);
   tick(); setInterval(tick, 1000);
-  if (window.innerWidth <= 840) { const s = $("#sidebar"); if (s) s.classList.add("collapsed"); }
+  if (isOverlay() && sidebarEl) { sidebarEl.classList.add("collapsed"); wasOverlay = true; }
 })();
