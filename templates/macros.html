@@ -3,22 +3,23 @@
 {% macro tree() %}
   {% set root = get_section(path="_index.md") %}
   <a class="node file" href="{{ get_url(path="@/_index.md") | safe }}" data-name="README.md">
-    <span class="fileicon">MD</span><span>README.md</span>
+    <span class="chev"></span><span class="fileicon">MD</span><span>README.md</span>
   </a>
   {% for p in root.pages | sort(attribute="extra.order") %}
   <a class="node file" href="{{ p.permalink | safe }}" data-name="{{ p.extra.filename }}">
-    <span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
+    <span class="chev"></span><span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
   </a>
   {% endfor %}
   {% for spath in root.subsections %}
     {% set s = get_section(path=spath) %}
-    <div class="node folder" data-folder="{{ s.extra.filename }}">
+    <div class="node folder" data-folder="{{ s.extra.filename }}" role="button" tabindex="0" aria-expanded="true">
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
       <span class="ix"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v10H3z"/></svg></span>{{ s.extra.filename }}/
     </div>
     <div class="children">
       {% for p in s.pages %}
       <a class="node file indent" href="{{ p.permalink | safe }}" data-name="{{ p.extra.filename }}">
-        <span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
+        <span class="chev"></span><span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
       </a>
       {% endfor %}
     </div>

@@ -49,16 +49,43 @@
     document.querySelectorAll(".tree .node.file").forEach((n) => {
       const active = norm(n.getAttribute("href")) === cur;
       n.classList.toggle("active", active);
-      if (active) { const kids = n.closest(".children"); if (kids) kids.classList.remove("closed"); }
+      if (active) {
+        const kids = n.closest(".children");
+        if (kids) {
+          kids.classList.remove("closed");
+          const folder = kids.previousElementSibling;
+          if (folder && folder.classList.contains("folder")) { folder.classList.remove("collapsed"); folder.setAttribute("aria-expanded", "true"); }
+        }
+      }
     });
+  }
+  function setFolderOpen(f, open) {
+    const kids = f.nextElementSibling;
+    f.classList.toggle("collapsed", !open);
+    f.setAttribute("aria-expanded", open ? "true" : "false");
+    if (kids && kids.classList.contains("children")) kids.classList.toggle("closed", !open);
   }
   function attachFolderToggles() {
     document.querySelectorAll(".tree .node.folder").forEach((f) => {
-      f.addEventListener("click", () => {
+      const toggle = () => {
         const kids = f.nextElementSibling;
-        if (kids && kids.classList.contains("children")) kids.classList.toggle("closed");
-      });
+        const open = !(kids && kids.classList.contains("closed"));
+        setFolderOpen(f, !open);
+      };
+      f.addEventListener("click", toggle);
+      f.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
     });
+    // project root collapses/expands the whole tree (like the editor's root node)
+    const proj = $(".sb-proj"), tree = $("#tree");
+    if (proj && tree) {
+      const toggleProj = () => {
+        const collapsed = proj.classList.toggle("collapsed");
+        tree.classList.toggle("tree-collapsed", collapsed);
+        proj.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      };
+      proj.addEventListener("click", toggleProj);
+      proj.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleProj(); } });
+    }
   }
 
   /* ---------- tabs (persisted across navigations) ---------- */

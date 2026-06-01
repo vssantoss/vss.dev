@@ -182,9 +182,14 @@ body{
   padding:13px 16px 9px;font-size:11px;letter-spacing:.16em;color:var(--text-faint);text-transform:uppercase;
   display:flex;align-items:center;justify-content:space-between;
 }
-.sb-proj{padding:0 12px 10px;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);font-weight:500}
-.sb-proj .chev{color:var(--text-dim)}
-.sb-proj svg{width:13px;height:13px;color:var(--accent)}
+.sb-proj{padding:4px 12px 8px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);font-weight:500;cursor:pointer;-webkit-user-select:none;user-select:none}
+.sb-proj:hover .chev{color:var(--text)}
+.sb-proj:focus-visible{outline:none}
+.sb-proj:focus-visible .chev{color:var(--accent)}
+.sb-proj>svg{width:13px;height:13px;color:var(--accent)}
+.sb-proj .chev{width:14px;height:14px;flex:none;display:grid;place-items:center;color:var(--text-dim);transition:transform .15s ease}
+.sb-proj .chev svg{width:12px;height:12px}
+.sb-proj.collapsed .chev{transform:rotate(-90deg)}
 .tree{flex:1;overflow-y:auto;padding:0 6px 12px}
 .node{
   display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;
@@ -205,8 +210,16 @@ body{
   font-size:8px;font-weight:700;letter-spacing:.02em;width:16px;height:16px;border-radius:3px;
   display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);
 }
-.children{overflow:hidden;transition:height .2s ease}
+.children{overflow:hidden;transition:height .2s ease;position:relative}
+.children::before{content:"";position:absolute;left:22px;top:1px;bottom:1px;width:1px;background:var(--border-soft)}
 .children.closed{display:none}
+
+/* folder twisties (VS Code-style): empty slot on files keeps icons aligned */
+.node .chev{width:16px;flex:none;display:grid;place-items:center;margin-right:-2px;color:var(--text-faint);transition:transform .15s ease}
+.node .chev svg{width:12px;height:12px}
+.node.folder:hover .chev{color:var(--text)}
+.node.folder.collapsed .chev{transform:rotate(-90deg)}
+.tree.tree-collapsed{display:none}
 
 /* ---------- main ---------- */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg-editor)}
