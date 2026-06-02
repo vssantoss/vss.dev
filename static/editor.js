@@ -49,16 +49,43 @@
     document.querySelectorAll(".tree .node.file").forEach((n) => {
       const active = norm(n.getAttribute("href")) === cur;
       n.classList.toggle("active", active);
-      if (active) { const kids = n.closest(".children"); if (kids) kids.classList.remove("closed"); }
+      if (active) {
+        const kids = n.closest(".children");
+        if (kids) {
+          kids.classList.remove("closed");
+          const folder = kids.previousElementSibling;
+          if (folder && folder.classList.contains("folder")) { folder.classList.remove("collapsed"); folder.setAttribute("aria-expanded", "true"); }
+        }
+      }
     });
+  }
+  function setFolderOpen(f, open) {
+    const kids = f.nextElementSibling;
+    f.classList.toggle("collapsed", !open);
+    f.setAttribute("aria-expanded", open ? "true" : "false");
+    if (kids && kids.classList.contains("children")) kids.classList.toggle("closed", !open);
   }
   function attachFolderToggles() {
     document.querySelectorAll(".tree .node.folder").forEach((f) => {
-      f.addEventListener("click", () => {
+      const toggle = () => {
         const kids = f.nextElementSibling;
-        if (kids && kids.classList.contains("children")) kids.classList.toggle("closed");
-      });
+        const open = !(kids && kids.classList.contains("closed"));
+        setFolderOpen(f, !open);
+      };
+      f.addEventListener("click", toggle);
+      f.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
     });
+    // project root collapses/expands the whole tree (like the editor's root node)
+    const proj = $(".sb-proj"), tree = $("#tree");
+    if (proj && tree) {
+      const toggleProj = () => {
+        const collapsed = proj.classList.toggle("collapsed");
+        tree.classList.toggle("tree-collapsed", collapsed);
+        proj.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      };
+      proj.addEventListener("click", toggleProj);
+      proj.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleProj(); } });
+    }
   }
 
   /* ---------- tabs (persisted across navigations) ---------- */
@@ -71,7 +98,7 @@
     if (!tabs.some((t) => norm(t.url) === cur)) tabs.push({ name: CURRENT.name, url: CURRENT.url });
     if (tabs.length > 12) tabs = tabs.slice(tabs.length - 12);
     writeTabs(tabs);
-    const bar = $("#tabs"); if (!bar) return;
+    const bar = $("#tabstrip"); if (!bar) return;
     bar.innerHTML = "";
     tabs.forEach((t) => {
       const active = norm(t.url) === cur;
@@ -82,6 +109,60 @@
         '<span class="x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 5l14 14M19 5L5 19"/></svg></span>';
       bar.appendChild(a);
     });
+    layoutTabs();
+  }
+  /* ---------- tab overflow: collapse non-fitting tabs into a chevron menu ---------- */
+  const xIcon = '<span class="x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 5l14 14M19 5L5 19"/></svg></span>';
+  function layoutTabs() {
+    const strip = $("#tabstrip"), btn = $("#tabovf"), menu = $("#tabmenu");
+    if (!strip || !btn) return;
+    const tabs = Array.from(strip.children);
+    tabs.forEach((t) => t.classList.remove("ovf-hidden"));
+    if (!tabs.length) { btn.hidden = true; if (menu) { menu.hidden = true; menu.innerHTML = ""; } closeTabMenu(); return; }
+    const avail = strip.clientWidth;
+    const widths = tabs.map((t) => t.offsetWidth);
+    const total = widths.reduce((a, b) => a + b, 0);
+    if (total <= avail) { btn.hidden = true; if (menu) menu.innerHTML = ""; closeTabMenu(); return; }
+    // reserve room for the chevron control, then grow a window that always includes the active tab
+    const usable = avail - 52;
+    let act = tabs.findIndex((t) => t.classList.contains("active"));
+    if (act < 0) act = 0;
+    let lo = act, hi = act, used = widths[act];
+    while (true) {
+      const canR = hi + 1 < tabs.length, canL = lo - 1 >= 0;
+      if (canR && used + widths[hi + 1] <= usable) { hi++; used += widths[hi]; continue; }
+      if (canL && used + widths[lo - 1] <= usable) { lo--; used += widths[lo]; continue; }
+      break;
+    }
+    const hidden = [];
+    tabs.forEach((t, i) => {
+      if (i < lo || i > hi) { t.classList.add("ovf-hidden"); hidden.push(t); }
+    });
+    btn.hidden = false;
+    const n = btn.querySelector(".tabovf-n"); if (n) n.textContent = hidden.length;
+    if (menu) {
+      const cur = getCur();
+      menu.innerHTML = hidden.map((t) => {
+        const active = norm(t.dataset.url) === cur;
+        const name = (t.querySelector(".nm") || {}).textContent || "";
+        return '<a class="item' + (active ? " active" : "") + '" role="menuitem" tabindex="0" href="' +
+          t.dataset.url + '" data-url="' + t.dataset.url + '"><span class="nm">' + name + "</span>" + xIcon + "</a>";
+      }).join("");
+    }
+  }
+  function openTabMenu() {
+    const btn = $("#tabovf"), menu = $("#tabmenu");
+    if (!btn || !menu || btn.hidden) return;
+    menu.hidden = false; btn.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+  }
+  function closeTabMenu() {
+    const btn = $("#tabovf"), menu = $("#tabmenu");
+    if (menu) menu.hidden = true;
+    if (btn) { btn.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+  }
+  function toggleTabMenu() {
+    const menu = $("#tabmenu");
+    if (menu && menu.hidden) openTabMenu(); else closeTabMenu();
   }
   let welcomeActive = false;
   function closeTab(url) {
@@ -97,7 +178,9 @@
     if (preview) preview.hidden = true;
     if (source) source.hidden = true;
     const s = $("#seg"); if (s) s.hidden = true;
-    const bar = $("#tabs"); if (bar) bar.innerHTML = "";
+    const bar = $("#tabstrip"); if (bar) bar.innerHTML = "";
+    const ovf = $("#tabovf"); if (ovf) ovf.hidden = true;
+    closeTabMenu();
     const c = $("#crumb"); if (c) c.innerHTML = "";
     const tp = $("#title-path"); if (tp) tp.textContent = "";
     let w = $("#welcome");
@@ -212,6 +295,16 @@
 
   /* ---------- global click delegation ---------- */
   document.addEventListener("click", (e) => {
+    // overflow chevron toggles its dropdown
+    if (e.target.closest("#tabovf")) { e.preventDefault(); toggleTabMenu(); return; }
+    // close from inside the overflow menu
+    const mx = e.target.closest(".tabmenu .item .x");
+    if (mx) { e.preventDefault(); const it = mx.closest(".item"); if (it) closeTab(it.dataset.url); return; }
+    // open from inside the overflow menu
+    const mi = e.target.closest(".tabmenu .item");
+    if (mi) { e.preventDefault(); closeTabMenu(); navigate(mi.dataset.url, true); return; }
+    // clicking elsewhere dismisses an open menu
+    if (!e.target.closest("#tabmenu")) closeTabMenu();
     const a = e.target.closest("a");
     if (!a) return;
     // tab close button
@@ -238,8 +331,293 @@
     setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
 
   /* ---------- sidebar ---------- */
-  const toggleSidebar = () => { const s = $("#sidebar"); if (s) s.classList.toggle("collapsed"); };
+  const sidebarEl = $("#sidebar");
+  // The sidebar floats over the content ("mobile"/overlay mode) only when the
+  // window itself is narrow. CSS container queries decide that, so we read the
+  // result back from layout instead of guessing from the viewport width.
+  const isOverlay = () => !!sidebarEl && getComputedStyle(sidebarEl).position === "absolute";
+  const toggleSidebar = () => { if (sidebarEl) sidebarEl.classList.toggle("collapsed"); };
   if ($("#act-files")) $("#act-files").addEventListener("click", toggleSidebar);
+  // in overlay mode, a click outside the sidebar dismisses it
+  document.addEventListener("click", (e) => {
+    if (!sidebarEl || !isOverlay() || sidebarEl.classList.contains("collapsed")) return;
+    if (e.target.closest("#sidebar") || e.target.closest("#act-files")) return;
+    sidebarEl.classList.add("collapsed");
+  });
+  // As the window is resized across the overlay threshold, mirror mobile/desktop:
+  // collapse when it becomes an overlay, reopen when it docks again.
+  let wasOverlay = isOverlay();
+  if (window.ResizeObserver) {
+    const win = $(".window");
+    if (win) new ResizeObserver(() => {
+      layoutTabs();
+      const now = isOverlay();
+      if (now === wasOverlay) return;
+      wasOverlay = now;
+      if (sidebarEl) sidebarEl.classList.toggle("collapsed", now);
+    }).observe(win);
+  }
+
+  /* ---------- desktop windowing: drag / resize / min / max / close ---------- */
+  const win = $(".window"), stage = $(".stage"), titlebar = $(".titlebar");
+  const launcher = $("#icon-window");
+  const btnClose = $("#win-close"), btnMin = $("#win-min"), btnMax = $("#win-max");
+  const mqMobile = window.matchMedia("(max-width:840px)");
+  const desktopMode = () => !mqMobile.matches;
+  const px = (el, p) => parseFloat(el.style[p]) || 0;
+
+  let isFree = false, savedGeom = null;
+  function makeFree() {
+    if (isFree || !win || !stage) return;
+    const r = win.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    win.style.left = (r.left - s.left) + "px";
+    win.style.top = (r.top - s.top) + "px";
+    win.style.width = r.width + "px";
+    win.style.height = r.height + "px";
+    win.classList.add("free");
+    isFree = true;
+  }
+  function clampGeom() {
+    if (!win || !win.classList.contains("free")) return;
+    const s = stage.getBoundingClientRect();
+    const w = win.offsetWidth, h = win.offsetHeight;
+    const minX = Math.min(0, s.width - w), maxX = Math.max(0, s.width - w);
+    const minY = Math.min(0, s.height - h), maxY = Math.max(0, s.height - h);
+    win.style.left = Math.min(Math.max(px(win, "left"), minX), maxX) + "px";
+    win.style.top = Math.min(Math.max(px(win, "top"), minY), maxY) + "px";
+  }
+
+  // drag by the titlebar (but not its buttons)
+  if (titlebar) titlebar.addEventListener("pointerdown", (e) => {
+    if (!desktopMode() || e.button !== 0) return;
+    if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
+    if (win.classList.contains("maximized")) return;
+    makeFree();
+    const sx = e.clientX, sy = e.clientY, ox = px(win, "left"), oy = px(win, "top");
+    win.classList.add("dragging");
+    titlebar.setPointerCapture(e.pointerId);
+    const move = (ev) => { win.style.left = (ox + ev.clientX - sx) + "px"; win.style.top = (oy + ev.clientY - sy) + "px"; clampGeom(); };
+    const up = () => {
+      titlebar.releasePointerCapture(e.pointerId);
+      titlebar.removeEventListener("pointermove", move);
+      titlebar.removeEventListener("pointerup", up);
+      win.classList.remove("dragging");
+    };
+    titlebar.addEventListener("pointermove", move);
+    titlebar.addEventListener("pointerup", up);
+  });
+  if (titlebar) titlebar.addEventListener("dblclick", (e) => {
+    if (!desktopMode() || e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
+    toggleMax();
+  });
+
+  // 8-direction resize grips
+  function startResize(e, edge) {
+    if (!desktopMode() || e.button !== 0 || win.classList.contains("maximized")) return;
+    e.preventDefault();
+    makeFree();
+    const s = stage.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const x0 = px(win, "left"), y0 = px(win, "top"), w0 = win.offsetWidth, h0 = win.offsetHeight;
+    const minW = 360, minH = 420;
+    win.classList.add("dragging");
+    e.target.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      let left = x0, top = y0, w = w0, h = h0;
+      if (edge.includes("e")) w = w0 + dx;
+      if (edge.includes("s")) h = h0 + dy;
+      if (edge.includes("w")) { w = w0 - dx; left = x0 + dx; }
+      if (edge.includes("n")) { h = h0 - dy; top = y0 + dy; }
+      if (w < minW) { if (edge.includes("w")) left -= minW - w; w = minW; }
+      if (h < minH) { if (edge.includes("n")) top -= minH - h; h = minH; }
+      if (left < 0) { if (edge.includes("w")) w += left; left = 0; }
+      if (top < 0) { if (edge.includes("n")) h += top; top = 0; }
+      if (left + w > s.width) w = s.width - left;
+      if (top + h > s.height) h = s.height - top;
+      win.style.left = left + "px"; win.style.top = top + "px";
+      win.style.width = w + "px"; win.style.height = h + "px";
+    };
+    const up = () => {
+      e.target.releasePointerCapture(e.pointerId);
+      e.target.removeEventListener("pointermove", move);
+      e.target.removeEventListener("pointerup", up);
+      win.classList.remove("dragging");
+    };
+    e.target.addEventListener("pointermove", move);
+    e.target.addEventListener("pointerup", up);
+  }
+  if (win) ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((edge) => {
+    const h = document.createElement("div");
+    h.className = "win-handle " + edge;
+    h.addEventListener("pointerdown", (e) => startResize(e, edge));
+    win.appendChild(h);
+  });
+
+  function toggleMax() {
+    if (!desktopMode() || !win) return;
+    if (win.classList.contains("maximized")) {
+      win.classList.remove("maximized");
+      if (savedGeom) { Object.assign(win.style, savedGeom); }
+      savedGeom = null;
+      btnMax && btnMax.setAttribute("aria-label", "Maximize");
+      clampGeom();
+    } else {
+      savedGeom = isFree ? { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height } : null;
+      win.style.left = win.style.top = win.style.width = win.style.height = ""; // let fixed inset:0 take over
+      win.classList.add("maximized");
+      btnMax && btnMax.setAttribute("aria-label", "Restore");
+    }
+  }
+  let closedReset = false;
+  function hideWindow(reset) {
+    if (!win) return;
+    if (reset) {                       // close: also drop free/maximized geometry
+      win.classList.remove("free", "maximized");
+      isFree = false; savedGeom = null;
+      win.style.left = win.style.top = win.style.width = win.style.height = "";
+      btnMax && btnMax.setAttribute("aria-label", "Maximize");
+      closedReset = true;              // reopen should look like a first visit
+    }
+    win.classList.add("hidden");
+    if (launcher) launcher.hidden = false;
+  }
+  function showWindow() {
+    if (!win) return;
+    win.classList.remove("hidden");
+    if (launcher) launcher.hidden = true;
+    if (closedReset) { closedReset = false; resetToFirstVisit(); replayRise(); }
+  }
+  // wipe session state so a reopened (closed) window starts fresh: no restored
+  // tabs, back on the home page, Preview view, default sidebar. Theme and
+  // desktop-icon positions are user/desktop preferences and intentionally kept.
+  function resetToFirstVisit() {
+    writeTabs([]);
+    if (sidebarEl) sidebarEl.classList.toggle("collapsed", isOverlay());
+    setView("preview");
+    const home = (FILES[0] && FILES[0].url) || (location.origin + "/");
+    if (norm(home) === getCur()) renderTabs();
+    else navigate(home, true);
+  }
+  function replayRise() {               // re-trigger the open animation
+    if (!win) return;
+    win.style.animation = "none"; void win.offsetHeight; win.style.animation = "";
+  }
+  if (btnMax) btnMax.addEventListener("click", toggleMax);
+  if (btnMin) btnMin.addEventListener("click", () => hideWindow(false));
+  if (btnClose) btnClose.addEventListener("click", () => hideWindow(true));
+
+  // crossing into mobile resets to the full-screen layout and never strands a hidden window
+  mqMobile.addEventListener("change", (e) => {
+    if (e.matches) {
+      win && win.classList.remove("free", "maximized", "hidden");
+      isFree = false; savedGeom = null;
+      if (win) win.style.left = win.style.top = win.style.width = win.style.height = "";
+      if (launcher) launcher.hidden = true;
+      btnMax && btnMax.setAttribute("aria-label", "Maximize");
+    } else { clampGeom(); }
+  });
+  window.addEventListener("resize", () => { if (desktopMode()) clampGeom(); });
+
+  /* ---------- desktop icons: snap-to-grid, draggable, persisted ---------- */
+  const DESK = (function () {
+    const layer = $("#desktop");
+    if (!layer) return null;
+    const CELL_W = 76, CELL_H = 92, MARGIN = 14, KEY = "vss-icons";
+    const icons = [];                 // {id, el, col, row}
+    const occ = new Map();            // "col,row" -> id
+    const key = (c, r) => c + "," + r;
+    const dims = () => {
+      const r = layer.getBoundingClientRect();
+      return { h: r.height, cols: Math.max(1, Math.floor((r.width - MARGIN * 2) / CELL_W)), rows: Math.max(1, Math.floor((r.height - MARGIN * 2) / CELL_H)) };
+    };
+    const cellToPx = (c, r) => ({ x: MARGIN + c * CELL_W, y: dims().h - MARGIN - (r + 1) * CELL_H });
+    function pxToCell(x, y) {
+      const d = dims();
+      const c = Math.min(Math.max(Math.round((x - MARGIN) / CELL_W), 0), d.cols - 1);
+      const r = Math.min(Math.max(Math.round((d.h - MARGIN - y) / CELL_H - 1), 0), d.rows - 1);
+      return { c, r };
+    }
+    function nextFreeFrom(c, r) {           // walk up (rows) then right (cols)
+      const d = dims();
+      for (let cc = c; cc < d.cols; cc++)
+        for (let rr = cc === c ? r : 0; rr < d.rows; rr++)
+          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+      for (let cc = 0; cc < d.cols; cc++)
+        for (let rr = 0; rr < d.rows; rr++)
+          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+      return { c: 0, r: 0 };
+    }
+    const place = (i) => { const p = cellToPx(i.col, i.row); i.el.style.left = p.x + "px"; i.el.style.top = p.y + "px"; };
+    function assign(i, c, r) {
+      occ.delete(key(i.col, i.row));
+      if (occ.has(key(c, r))) { const f = nextFreeFrom(c, r); c = f.c; r = f.r; }
+      i.col = c; i.row = r; occ.set(key(c, r), i.id); place(i);
+    }
+    const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+    const save = () => { try { const o = {}; icons.forEach((i) => o[i.id] = { c: i.col, r: i.row }); localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
+    const stored = load();
+
+    function register(el, opts) {
+      opts = opts || {};
+      const id = el.dataset.icon || el.id;
+      if (opts.titleEl) {
+        const name = Array.from(opts.titleEl.childNodes)
+          .filter((n) => !(n.nodeType === 1 && n.classList.contains("path")))
+          .map((n) => n.textContent).join("").trim();
+        const lab = el.querySelector(".desk-label");
+        if (lab) lab.textContent = name;
+        if (name) el.setAttribute("aria-label", "Open " + name + " window");
+      }
+      const icon = { id, el, col: 0, row: 0 };
+      const d = dims(), s = stored[id];
+      let cell = (s && s.c < d.cols && s.r < d.rows && !occ.has(key(s.c, s.r))) ? { c: s.c, r: s.r } : nextFreeFrom(0, 0);
+      icon.col = cell.c; icon.row = cell.r; occ.set(key(cell.c, cell.r), id);
+      icons.push(icon); place(icon);
+
+      let moved = false;
+      el.addEventListener("pointerdown", (e) => {
+        if (!desktopMode() || e.button !== 0) return;
+        moved = false;
+        const sx = e.clientX, sy = e.clientY, ox = parseFloat(el.style.left) || 0, oy = parseFloat(el.style.top) || 0;
+        el.setPointerCapture(e.pointerId);
+        const move = (ev) => {
+          const dx = ev.clientX - sx, dy = ev.clientY - sy;
+          if (!moved && Math.hypot(dx, dy) < 4) return;
+          moved = true; el.classList.add("dragging");
+          el.style.left = (ox + dx) + "px"; el.style.top = (oy + dy) + "px";
+        };
+        const up = () => {
+          el.releasePointerCapture(e.pointerId);
+          el.removeEventListener("pointermove", move);
+          el.removeEventListener("pointerup", up);
+          if (moved) {
+            el.classList.remove("dragging");
+            const cell = pxToCell(parseFloat(el.style.left) || 0, parseFloat(el.style.top) || 0);
+            assign(icon, cell.c, cell.r); save();
+          }
+        };
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", up);
+      });
+      el.addEventListener("dblclick", () => { if (!moved && opts.onOpen) opts.onOpen(); });
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (opts.onOpen) opts.onOpen(); } });
+      return icon;
+    }
+
+    function reflow() {
+      const d = dims(); let changed = false;
+      icons.forEach((i) => {
+        if (i.col >= d.cols || i.row >= d.rows) { occ.delete(key(i.col, i.row)); const f = nextFreeFrom(0, 0); i.col = f.c; i.row = f.r; occ.set(key(f.c, f.r), i.id); changed = true; }
+        place(i);
+      });
+      if (changed) save();
+    }
+    window.addEventListener("resize", reflow);
+    return { register };
+  })();
+
+  if (DESK && launcher) DESK.register(launcher, { titleEl: $(".titlebar .who"), onOpen: showWindow });
 
   /* ---------- command palette ---------- */
   const pbg = $("#palette-bg"), pinput = $("#palette-input"), plist = $("#plist");
@@ -271,7 +649,11 @@
   document.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); pbg && pbg.classList.contains("open") ? closePalette() : openPalette(); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") { e.preventDefault(); toggleSidebar(); }
-    else if (e.key === "Escape") closePalette();
+    else if (e.key === "Escape") {
+      closePalette();
+      const tb = $("#tabovf");
+      if (tb && tb.classList.contains("open")) { closeTabMenu(); tb.focus(); }
+    }
   });
 
   /* ---------- boot ---------- */
@@ -279,6 +661,8 @@
   attachFolderToggles();
   markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); updateSeg();
   history.replaceState({ url: CURRENT.url }, "", location.href);
-  tick(); setInterval(tick, 1000);
-  if (window.innerWidth <= 840) { const s = $("#sidebar"); if (s) s.classList.add("collapsed"); }
+  tick();
+  // the clock only shows HH:MM, so update once per minute, aligned to the boundary
+  (function scheduleTick() { setTimeout(() => { tick(); scheduleTick(); }, 60000 - (Date.now() % 60000)); })();
+  if (isOverlay() && sidebarEl) { sidebarEl.classList.add("collapsed"); wasOverlay = true; }
 })();

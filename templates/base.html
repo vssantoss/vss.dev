@@ -90,11 +90,24 @@
 <div class="backdrop"></div>
 
 <div class="stage">
+
+<!-- DESKTOP ICONS (snap-to-grid, draggable; launcher shows only when the window is hidden) -->
+<div class="desktop" id="desktop">
+  <button class="desk-icon" id="icon-window" data-icon="window" type="button" hidden aria-label="Open vss.dev window">
+    <span class="desk-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><path d="M3 9h18"/><path d="M6 6.6h.01M8.4 6.6h.01"/></svg></span>
+    <span class="desk-label"></span>
+  </button>
+</div>
+
 <div class="window">
 
   <!-- TITLE BAR -->
   <div class="titlebar">
-    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="dots">
+      <button class="dot r" id="win-close" type="button" title="Close" aria-label="Close"></button>
+      <button class="dot y" id="win-min" type="button" title="Minimize" aria-label="Minimize"></button>
+      <button class="dot g" id="win-max" type="button" title="Maximize" aria-label="Maximize"></button>
+    </div>
     <div class="who"><b>vss.dev</b><span class="sep path">·</span><span class="path" id="title-path">{{ crumb }}</span></div>
     <div class="right">
       <button class="iconbtn" id="btn-palette" title="Open file (Ctrl/⌘ K)" aria-label="Command palette">
@@ -133,7 +146,8 @@
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
       <div class="sb-head"><span>Explorer</span></div>
-      <div class="sb-proj"><span class="chev">⌄</span>
+      <div class="sb-proj" role="button" tabindex="0" aria-expanded="true">
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v10H3z"/></svg>
         VSS.DEV
       </div>
@@ -142,7 +156,14 @@
 
     <!-- MAIN -->
     <div class="main">
-      <div class="tabs" id="tabs"></div>
+      <div class="tabs" id="tabs">
+        <div class="tabstrip" id="tabstrip"></div>
+        <button class="tabovf" id="tabovf" type="button" hidden aria-haspopup="true" aria-expanded="false" aria-label="More open tabs">
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          <span class="tabovf-n"></span>
+        </button>
+        <div class="tabmenu" id="tabmenu" hidden role="menu"></div>
+      </div>
       <div class="viewbar">
         <div class="crumb" id="crumb"></div>
         <div class="seg" id="seg"{% if is_virtual %} hidden{% endif %}>
