@@ -178,7 +178,9 @@
     if (preview) preview.hidden = true;
     if (source) source.hidden = true;
     const s = $("#seg"); if (s) s.hidden = true;
-    const bar = $("#tabs"); if (bar) bar.innerHTML = "";
+    const bar = $("#tabstrip"); if (bar) bar.innerHTML = "";
+    const ovf = $("#tabovf"); if (ovf) ovf.hidden = true;
+    closeTabMenu();
     const c = $("#crumb"); if (c) c.innerHTML = "";
     const tp = $("#title-path"); if (tp) tp.textContent = "";
     let w = $("#welcome");
@@ -659,6 +661,8 @@
   attachFolderToggles();
   markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); updateSeg();
   history.replaceState({ url: CURRENT.url }, "", location.href);
-  tick(); setInterval(tick, 1000);
+  tick();
+  // the clock only shows HH:MM, so update once per minute, aligned to the boundary
+  (function scheduleTick() { setTimeout(() => { tick(); scheduleTick(); }, 60000 - (Date.now() % 60000)); })();
   if (isOverlay() && sidebarEl) { sidebarEl.classList.add("collapsed"); wasOverlay = true; }
 })();
