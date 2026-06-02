@@ -156,7 +156,14 @@
 
     <!-- MAIN -->
     <div class="main">
-      <div class="tabs" id="tabs"></div>
+      <div class="tabs" id="tabs">
+        <div class="tabstrip" id="tabstrip"></div>
+        <button class="tabovf" id="tabovf" type="button" hidden aria-haspopup="true" aria-expanded="false" aria-label="More open tabs">
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          <span class="tabovf-n"></span>
+        </button>
+        <div class="tabmenu" id="tabmenu" hidden role="menu"></div>
+      </div>
       <div class="viewbar">
         <div class="crumb" id="crumb"></div>
         <div class="seg" id="seg"{% if is_virtual %} hidden{% endif %}>

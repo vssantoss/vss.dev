@@ -98,7 +98,7 @@
     if (!tabs.some((t) => norm(t.url) === cur)) tabs.push({ name: CURRENT.name, url: CURRENT.url });
     if (tabs.length > 12) tabs = tabs.slice(tabs.length - 12);
     writeTabs(tabs);
-    const bar = $("#tabs"); if (!bar) return;
+    const bar = $("#tabstrip"); if (!bar) return;
     bar.innerHTML = "";
     tabs.forEach((t) => {
       const active = norm(t.url) === cur;
@@ -109,6 +109,60 @@
         '<span class="x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 5l14 14M19 5L5 19"/></svg></span>';
       bar.appendChild(a);
     });
+    layoutTabs();
+  }
+  /* ---------- tab overflow: collapse non-fitting tabs into a chevron menu ---------- */
+  const xIcon = '<span class="x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 5l14 14M19 5L5 19"/></svg></span>';
+  function layoutTabs() {
+    const strip = $("#tabstrip"), btn = $("#tabovf"), menu = $("#tabmenu");
+    if (!strip || !btn) return;
+    const tabs = Array.from(strip.children);
+    tabs.forEach((t) => t.classList.remove("ovf-hidden"));
+    if (!tabs.length) { btn.hidden = true; if (menu) { menu.hidden = true; menu.innerHTML = ""; } closeTabMenu(); return; }
+    const avail = strip.clientWidth;
+    const widths = tabs.map((t) => t.offsetWidth);
+    const total = widths.reduce((a, b) => a + b, 0);
+    if (total <= avail) { btn.hidden = true; if (menu) menu.innerHTML = ""; closeTabMenu(); return; }
+    // reserve room for the chevron control, then grow a window that always includes the active tab
+    const usable = avail - 52;
+    let act = tabs.findIndex((t) => t.classList.contains("active"));
+    if (act < 0) act = 0;
+    let lo = act, hi = act, used = widths[act];
+    while (true) {
+      const canR = hi + 1 < tabs.length, canL = lo - 1 >= 0;
+      if (canR && used + widths[hi + 1] <= usable) { hi++; used += widths[hi]; continue; }
+      if (canL && used + widths[lo - 1] <= usable) { lo--; used += widths[lo]; continue; }
+      break;
+    }
+    const hidden = [];
+    tabs.forEach((t, i) => {
+      if (i < lo || i > hi) { t.classList.add("ovf-hidden"); hidden.push(t); }
+    });
+    btn.hidden = false;
+    const n = btn.querySelector(".tabovf-n"); if (n) n.textContent = hidden.length;
+    if (menu) {
+      const cur = getCur();
+      menu.innerHTML = hidden.map((t) => {
+        const active = norm(t.dataset.url) === cur;
+        const name = (t.querySelector(".nm") || {}).textContent || "";
+        return '<a class="item' + (active ? " active" : "") + '" role="menuitem" tabindex="0" href="' +
+          t.dataset.url + '" data-url="' + t.dataset.url + '"><span class="nm">' + name + "</span>" + xIcon + "</a>";
+      }).join("");
+    }
+  }
+  function openTabMenu() {
+    const btn = $("#tabovf"), menu = $("#tabmenu");
+    if (!btn || !menu || btn.hidden) return;
+    menu.hidden = false; btn.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+  }
+  function closeTabMenu() {
+    const btn = $("#tabovf"), menu = $("#tabmenu");
+    if (menu) menu.hidden = true;
+    if (btn) { btn.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+  }
+  function toggleTabMenu() {
+    const menu = $("#tabmenu");
+    if (menu && menu.hidden) openTabMenu(); else closeTabMenu();
   }
   let welcomeActive = false;
   function closeTab(url) {
@@ -239,6 +293,16 @@
 
   /* ---------- global click delegation ---------- */
   document.addEventListener("click", (e) => {
+    // overflow chevron toggles its dropdown
+    if (e.target.closest("#tabovf")) { e.preventDefault(); toggleTabMenu(); return; }
+    // close from inside the overflow menu
+    const mx = e.target.closest(".tabmenu .item .x");
+    if (mx) { e.preventDefault(); const it = mx.closest(".item"); if (it) closeTab(it.dataset.url); return; }
+    // open from inside the overflow menu
+    const mi = e.target.closest(".tabmenu .item");
+    if (mi) { e.preventDefault(); closeTabMenu(); navigate(mi.dataset.url, true); return; }
+    // clicking elsewhere dismisses an open menu
+    if (!e.target.closest("#tabmenu")) closeTabMenu();
     const a = e.target.closest("a");
     if (!a) return;
     // tab close button
@@ -284,6 +348,7 @@
   if (window.ResizeObserver) {
     const win = $(".window");
     if (win) new ResizeObserver(() => {
+      layoutTabs();
       const now = isOverlay();
       if (now === wasOverlay) return;
       wasOverlay = now;
@@ -582,7 +647,11 @@
   document.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); pbg && pbg.classList.contains("open") ? closePalette() : openPalette(); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") { e.preventDefault(); toggleSidebar(); }
-    else if (e.key === "Escape") closePalette();
+    else if (e.key === "Escape") {
+      closePalette();
+      const tb = $("#tabovf");
+      if (tb && tb.classList.contains("open")) { closeTabMenu(); tb.focus(); }
+    }
   });
 
   /* ---------- boot ---------- */

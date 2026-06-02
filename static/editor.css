@@ -225,10 +225,10 @@ body{
 .main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg-editor)}
 
 /* tabs */
-.tabs{height:var(--tab-h);flex:none;display:flex;background:var(--bg-tab);border-bottom:1px solid var(--border-soft);overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
+.tabs{height:var(--tab-h);flex:none;display:flex;background:var(--bg-tab);border-bottom:1px solid var(--border-soft);overflow:visible;position:relative}
+.tabstrip{display:flex;min-width:0;flex:1;overflow:hidden}
 .tab{
-  display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;height:100%;cursor:pointer;
+  display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;height:100%;cursor:pointer;flex:none;
   border-right:1px solid var(--border-soft);font-size:12.5px;color:var(--text-dim);
   background:var(--bg-tab);white-space:nowrap;position:relative;transition:color .12s;max-width:230px;text-decoration:none;
 }
@@ -241,6 +241,31 @@ body{
 .tab:hover .x{opacity:1}
 .tab .x:hover{background:var(--bg-hover);color:var(--text)}
 .tab .x svg{width:11px;height:11px}
+.tab.ovf-hidden{display:none}
+/* overflow control + dropdown */
+.tabovf{flex:none;display:flex;align-items:center;gap:6px;height:100%;padding:0 13px;cursor:pointer;
+  border:none;border-left:1px solid var(--border-soft);background:var(--bg-tab-active);color:var(--text);font:inherit}
+.tabovf[hidden]{display:none}
+.tabovf:hover{background:var(--bg-hover)}
+.tabovf:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tabovf .chev{width:15px;height:15px;transition:transform .15s ease}
+.tabovf.open .chev{transform:rotate(180deg)}
+.tabovf .tabovf-n{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--accent);color:#000;font-size:11px;font-weight:600;line-height:1}
+.tabmenu{position:absolute;right:0;top:100%;z-index:30;min-width:200px;max-width:300px;max-height:60vh;overflow-y:auto;
+  background:var(--bg-window);border:1px solid var(--border);border-radius:10px;padding:6px;margin-top:4px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.7)}
+.tabmenu[hidden]{display:none}
+.tabmenu .item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;
+  font-size:12.5px;color:var(--text-dim);text-decoration:none}
+.tabmenu .item:hover,.tabmenu .item:focus-visible{background:var(--bg-hover);color:var(--text);outline:none}
+.tabmenu .item.active{color:var(--text)}
+.tabmenu .item.active::before{content:"";width:3px;align-self:stretch;margin:-8px 2px -8px -4px;border-radius:2px;background:var(--accent)}
+.tabmenu .item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabmenu .item .x{width:18px;height:18px;flex:none;display:grid;place-items:center;border-radius:5px;color:var(--text-faint);opacity:.6;transition:.12s}
+.tabmenu .item:hover .x{opacity:1}
+.tabmenu .item .x:hover{background:var(--bg-hover);color:var(--text)}
+.tabmenu .item .x svg{width:11px;height:11px}
 
 /* breadcrumb / viewbar */
 .viewbar{
@@ -447,4 +472,5 @@ html[data-theme="paper"] .statusbar{color:#fff}
 }
 @media(prefers-reduced-motion:reduce){
   .window,.node,.prose>*,.source .row,.desk-icon{animation:none!important}
+  .tabovf .chev{transition:none}
 }
