@@ -185,6 +185,8 @@
         </article>
         <div class="source" id="source" hidden></div>
       </div>
+      {# A: copy-source action floating over the source pane (pinned, does not scroll) #}
+      <button class="srccopy srccopy-float" id="srccopy-float" type="button" aria-label="Copy source" title="Copy source" hidden></button>
     </div>
 
   </div>
@@ -196,7 +198,7 @@
     <div class="grow"></div>
     <div class="si opt" id="st-pos">Ln 1, Col 1</div>
     <div class="si opt" id="st-words">0 words</div>
-    <div class="si">Markdown</div>
+    <div class="si" id="st-lang">Markdown</div>
     <div class="si opt">UTF-8</div>
     <div class="si hov" id="st-clock">--:--</div>
   </div>

@@ -177,6 +177,7 @@
     welcomeActive = true;
     if (preview) preview.hidden = true;
     if (source) source.hidden = true;
+    showSrcCopy(false);
     const s = $("#seg"); if (s) s.hidden = true;
     const bar = $("#tabstrip"); if (bar) bar.innerHTML = "";
     const ovf = $("#tabovf"); if (ovf) ovf.hidden = true;
@@ -216,6 +217,8 @@
     if (mode === "source") buildSource();
     if (preview) preview.hidden = mode !== "preview";
     if (source) source.hidden = mode !== "source";
+    showSrcCopy(mode === "source" && !!rawBody);
+    if ($("#st-lang")) $("#st-lang").textContent = mode === "source" ? "Markdown" : "Markdown Preview";
     document.querySelectorAll("#seg button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
   }
   const seg = $("#seg");
@@ -303,6 +306,20 @@
       pre.appendChild(btn);
     });
   }
+
+  /* ---------- Source view: copy the raw markdown ---------- */
+  // Floats over the pane and copies the live rawBody, which applyDoc keeps
+  // current across navigation.
+  const srcCopyBtn = $("#srccopy-float");
+  function copySource() {
+    if (!rawBody || !navigator.clipboard) return;
+    navigator.clipboard.writeText(rawBody).then(() => {
+      srcCopyBtn.classList.add("ok"); srcCopyBtn.innerHTML = CHECK_ICON;
+      setTimeout(() => { srcCopyBtn.classList.remove("ok"); srcCopyBtn.innerHTML = COPY_ICON; }, 1400);
+    }).catch(() => {});
+  }
+  function showSrcCopy(show) { if (srcCopyBtn) srcCopyBtn.hidden = !show; }
+  if (srcCopyBtn) { srcCopyBtn.innerHTML = COPY_ICON; srcCopyBtn.addEventListener("click", copySource); }
 
   /* ---------- SPA navigation ---------- */
   let nav = 0; // guards against out-of-order fetches
