@@ -247,6 +247,63 @@
     });
   }
 
+  /* ---------- code blocks: client-side highlight + copy (theme-aware) ---------- */
+  // Generic, language-agnostic tokeniser. Not a full parser: it colours the
+  // shapes GitHub does (comments, strings, numbers, keywords, calls, types)
+  // using the same --t-* theme variables as the Source view, so ink/paper
+  // both work and no fixed colours are baked into the HTML.
+  const HL_KW = new Set("abstract as async await begin break case catch chan class const continue declare def defer delete do done elif else end enum export extends fi final finally fn for from fun func function go goto if impl implements import in instanceof interface lambda let local loop match mod module move mut namespace new of override package pass private protected pub public raise readonly ref require return select self static struct super switch then this throw trait type typeof unless until use val var virtual void where while with yield".split(" "));
+  const HL_CONST = new Set("true false null undefined nil None True False NaN Infinity".split(" "));
+  function hlEsc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hlSpan(c, t) { return '<span class="' + c + '">' + hlEsc(t) + "</span>"; }
+  function highlightCodeStr(src, lang) {
+    lang = (lang || "").toLowerCase();
+    const hash = /^(sh|bash|shell|zsh|console|fish|toml|ini|cfg|conf|yaml|yml|py|python|rb|ruby|pl|perl|r|make|makefile|dockerfile|nginx|properties|env|gitignore|text)$/.test(lang);
+    const re = /(\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)|(\/\/[^\n]*)|(#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b0[xX][0-9a-fA-F]+\b|\b\d[\d_]*\.?\d*(?:[eE][+-]?\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+    let out = "", last = 0, m;
+    while ((m = re.exec(src))) {
+      out += hlEsc(src.slice(last, m.index));
+      last = re.lastIndex;
+      if (m[1] || m[2]) out += hlSpan("hl-c", m[1] || m[2]);
+      else if (m[3]) { if (hash) out += hlSpan("hl-c", m[3]); else { out += "#"; last = m.index + 1; re.lastIndex = last; } }
+      else if (m[4]) out += hlSpan("hl-s", m[4]);
+      else if (m[5]) out += hlSpan("hl-n", m[5]);
+      else if (m[6]) {
+        const w = m[6];
+        if (HL_CONST.has(w)) out += hlSpan("hl-cn", w);
+        else if (HL_KW.has(w)) out += hlSpan("hl-k", w);
+        else if (/^\s*\(/.test(src.slice(last))) out += hlSpan("hl-f", w);
+        else if (/^[A-Z]/.test(w) && w.length > 1) out += hlSpan("hl-t", w);
+        else out += hlEsc(w);
+      }
+    }
+    out += hlEsc(src.slice(last));
+    return out;
+  }
+  const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg>';
+  function enhanceCode() {
+    if (!preview) return;
+    preview.querySelectorAll("pre > code").forEach((code) => {
+      if (code.dataset.hl) return;
+      code.dataset.hl = "1";
+      code.innerHTML = highlightCodeStr(code.textContent, code.dataset.lang || "");
+    });
+    preview.querySelectorAll("pre").forEach((pre) => {
+      if (pre.querySelector(".copybtn")) return;
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "copybtn"; btn.setAttribute("aria-label", "Copy code"); btn.title = "Copy";
+      btn.innerHTML = COPY_ICON;
+      btn.addEventListener("click", () => {
+        const code = pre.querySelector("code");
+        const text = (code || pre).textContent;
+        const done = () => { btn.classList.add("ok"); btn.innerHTML = CHECK_ICON; setTimeout(() => { btn.classList.remove("ok"); btn.innerHTML = COPY_ICON; }, 1400); };
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => {});
+      });
+      pre.appendChild(btn);
+    });
+  }
+
   /* ---------- SPA navigation ---------- */
   let nav = 0; // guards against out-of-order fetches
   function applyDoc(doc, url) {
@@ -270,7 +327,7 @@
     setMeta('meta[property="og:description"]', "content", desc);
 
     sourceBuilt = false;
-    markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); updateSeg();
+    markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); enhanceCode(); updateSeg();
     const wrap = $("#editor"); if (wrap) wrap.scrollTop = 0;
   }
   function setMeta(sel, attr, val) { const el = $(sel); if (el) el.setAttribute(attr, val); }
@@ -659,7 +716,7 @@
   /* ---------- boot ---------- */
   setTheme(document.documentElement.dataset.theme || "ink");
   attachFolderToggles();
-  markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); updateSeg();
+  markTree(); renderTabs(); renderCrumb(); setStatus(); decorateLinks(); enhanceCode(); updateSeg();
   history.replaceState({ url: CURRENT.url }, "", location.href);
   tick();
   // the clock only shows HH:MM, so update once per minute, aligned to the boundary
