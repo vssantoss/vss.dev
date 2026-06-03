@@ -229,7 +229,7 @@ body{
 .tree.tree-collapsed{display:none}
 
 /* ---------- main ---------- */
-.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg-editor)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg-editor);position:relative}
 
 /* tabs */
 .tabs{height:var(--tab-h);flex:none;display:flex;background:var(--bg-tab);border-bottom:1px solid var(--border-soft);overflow:visible;position:relative}
@@ -293,6 +293,24 @@ html[data-theme="paper"] .tabovf .tabovf-n{color:#fff}
 html[data-theme="paper"] .seg button.on{color:#fff}
 .seg[hidden]{display:none}
 
+/* copy-source button (Source view): floats over the editor pane. */
+.srccopy{
+  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;padding:0;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg-window);color:var(--text-dim);cursor:pointer;
+  transition:opacity .12s,color .12s,border-color .12s;
+}
+.srccopy:hover{color:var(--text);border-color:var(--accent)}
+.srccopy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.srccopy.ok{color:var(--accent-2);border-color:var(--accent-2)}
+.srccopy svg{width:15px;height:15px;display:block}
+.srccopy[hidden]{display:none}
+/* pinned to the top-right of the editor pane; anchored to .main (which does
+   not scroll), so it stays put while the source scrolls beneath it. The offset
+   clears the tabs (--tab-h) and the 34px viewbar. */
+.srccopy-float{position:absolute;top:calc(var(--tab-h) + 44px);right:18px;z-index:5;opacity:.6}
+.srccopy-float:hover,.srccopy-float:focus-visible{opacity:1}
+
 /* editor scroll area */
 .editor-wrap{flex:1;overflow:auto;position:relative}
 .editor-wrap::-webkit-scrollbar{width:11px;height:11px}
@@ -348,8 +366,8 @@ html[data-theme="paper"] .seg button.on{color:#fff}
 .prose p{margin:0 0 16px}
 .prose strong{font-weight:600;color:var(--text)}
 .prose em{font-style:italic}
-.prose a:not(.filerow):not(.pager-link){color:var(--accent);text-decoration:none;border-bottom:none;padding-bottom:0}
-.prose a:not(.filerow):not(.pager-link):hover{text-decoration:underline;background:none}
+.prose a:not(.filerow-link):not(.tg):not(.pager-link){color:var(--accent);text-decoration:none;border-bottom:none;padding-bottom:0}
+.prose a:not(.filerow-link):not(.tg):not(.pager-link):hover{text-decoration:underline;background:none}
 .prose ul,.prose ol{margin:0 0 16px;padding-left:2em}
 .prose ul ul,.prose ul ol,.prose ol ol,.prose ol ul{margin:0}
 .prose li{margin:.25em 0}
@@ -413,10 +431,15 @@ html[data-theme="paper"] .seg button.on{color:#fff}
 /* ---------- section index (file listing) ---------- */
 .filelist{margin:1.8rem 0 0;border-top:1px solid var(--border-soft)}
 .filelist .filerow{
-  display:flex;flex-direction:column;padding:14px 8px;
+  position:relative;display:flex;flex-direction:column;padding:14px 8px;
   border-bottom:1px solid var(--border-soft);text-decoration:none;color:inherit;
   border-radius:8px;transition:background .12s,border-color .12s;
 }
+/* the title is the post link; its ::after stretches over the whole row so the
+   card stays fully clickable, while the tag links (raised above it) keep their
+   own clicks */
+.filelist .filerow-link{text-decoration:none;color:inherit}
+.filelist .filerow-link::after{content:"";position:absolute;inset:0;z-index:0}
 .filelist .filerow:hover{background:var(--bg-hover);border-bottom-color:var(--accent)}
 .filelist .filerow-title{
   font-family:var(--sans);font-weight:600;font-size:1.15rem;line-height:1.25;
@@ -433,7 +456,8 @@ html[data-theme="paper"] .seg button.on{color:#fff}
 }
 .filelist .filerow-meta{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;color:var(--text-faint);margin:.6rem 0 0}
 .filelist .filerow-meta time{color:var(--text-dim);font-variant-numeric:tabular-nums}
-.filelist .filerow-meta .tg{color:var(--accent-2)}
+.filelist .filerow-meta .tg{position:relative;z-index:1;color:var(--accent-2);text-decoration:none;transition:color .12s}
+.filelist .filerow-meta .tg:hover{color:var(--accent);text-decoration:underline}
 .pager{display:flex;align-items:center;justify-content:center;gap:18px;margin:2.2rem 0 0;max-width:860px}
 .pager-link{font-family:var(--mono);font-size:12px;color:var(--accent);text-decoration:none;padding:5px 12px;border-radius:7px;transition:background .12s}
 .pager-link:hover{background:var(--accent-soft)}
@@ -519,6 +543,7 @@ html[data-theme="paper"] .statusbar{color:#fff}
 }
 @container window (max-width:560px){
   .seg{display:none}
+  .srccopy{display:none}
   .statusbar .si.opt{display:none}
 }
 /* Real small screens: the window fills the viewport edge-to-edge, no chrome

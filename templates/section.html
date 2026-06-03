@@ -3,15 +3,15 @@
   {% if paginator %}{% set pages = paginator.pages %}{% else %}{% set pages = section.pages %}{% endif %}
   <div class="filelist">
   {% for p in pages %}
-    <a class="filerow" href="{{ p.permalink | safe }}">
-      <h3 class="filerow-title">{{ p.title }}</h3>
+    <div class="filerow">
+      <h3 class="filerow-title"><a class="filerow-link" href="{{ p.permalink | safe }}">{{ p.title }}</a></h3>
       <span class="filerow-name"><span class="fileicon">MD</span>{{ p.extra.filename | default(value=p.title) }}</span>
       {% if p.description %}<p class="filerow-desc">{{ p.description }}</p>{% endif %}
       <div class="filerow-meta">
         {% if p.date %}<time datetime="{{ p.date }}">{{ p.date | date(format="%b %-d, %Y") }}</time>{% endif %}
-        {% if p.taxonomies.tags %}{% for t in p.taxonomies.tags %}<span class="tg">#{{ t }}</span>{% endfor %}{% endif %}
+        {% if p.taxonomies.tags %}{% for t in p.taxonomies.tags %}<a class="tg" href="{{ get_taxonomy_url(kind="tags", name=t) | safe }}">#{{ t }}</a>{% endfor %}{% endif %}
       </div>
-    </a>
+    </div>
   {% endfor %}
   </div>
   {% if paginator and paginator.number_pagers > 1 %}
