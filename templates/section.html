@@ -1,9 +1,24 @@
 {% extends "base.html" %}
 {% block listing %}
-  <h2>Files</h2>
-  <ul>
-  {% for p in section.pages %}
-    <li><a href="{{ p.permalink | safe }}">{{ p.extra.filename | default(value=p.title) }}</a>{% if p.description %}: {{ p.description }}{% endif %}</li>
+  {% if paginator %}{% set pages = paginator.pages %}{% else %}{% set pages = section.pages %}{% endif %}
+  <div class="filelist">
+  {% for p in pages %}
+    <a class="filerow" href="{{ p.permalink | safe }}">
+      <h3 class="filerow-title">{{ p.title }}</h3>
+      <span class="filerow-name"><span class="fileicon">MD</span>{{ p.extra.filename | default(value=p.title) }}</span>
+      {% if p.description %}<p class="filerow-desc">{{ p.description }}</p>{% endif %}
+      <div class="filerow-meta">
+        {% if p.date %}<time datetime="{{ p.date }}">{{ p.date | date(format="%b %-d, %Y") }}</time>{% endif %}
+        {% if p.taxonomies.tags %}{% for t in p.taxonomies.tags %}<span class="tg">#{{ t }}</span>{% endfor %}{% endif %}
+      </div>
+    </a>
   {% endfor %}
-  </ul>
+  </div>
+  {% if paginator and paginator.number_pagers > 1 %}
+  <nav class="pager" aria-label="Pagination">
+    {% if paginator.previous %}<a class="pager-link" href="{{ paginator.previous | safe }}">‹ newer</a>{% else %}<span class="pager-link disabled">‹ newer</span>{% endif %}
+    <span class="pager-pos">{{ paginator.current_index }} / {{ paginator.number_pagers }}</span>
+    {% if paginator.next %}<a class="pager-link" href="{{ paginator.next | safe }}">older ›</a>{% else %}<span class="pager-link disabled">older ›</span>{% endif %}
+  </nav>
+  {% endif %}
 {% endblock %}

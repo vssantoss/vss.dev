@@ -22,7 +22,11 @@
   {% set desc = section.description | default(value=config.description) %}
   {% set content = section.content %}
   {% set relpath = section.relative_path %}
-  {% set fname = section.extra.filename | default(value=section.title) %}
+  {% if section.relative_path == "_index.md" %}
+    {% set fname = section.extra.filename | default(value=section.title) %}
+  {% else %}
+    {% set fname = "_index.md" %}
+  {% endif %}
 {% elif term %}
   {% set title = "Tag: " ~ term.name %}
   {% set desc = "Everything on vss.dev tagged " ~ term.name ~ "." %}
@@ -36,7 +40,7 @@
 {% endif %}
 {% set is_home = relpath == "_index.md" %}
 {% set crumb = fname %}
-{% if page %}{% set parts = relpath | split(pat="/") %}{% if parts | length > 1 %}{% set crumb = parts[0] ~ "/" ~ fname %}{% endif %}{% endif %}
+{% if page or section %}{% set parts = relpath | split(pat="/") %}{% if parts | length > 1 %}{% set crumb = parts[0] ~ "/" ~ fname %}{% endif %}{% endif %}
 {% if term %}{% set crumb = "tags/" ~ term.name %}{% endif %}
 {% if terms %}{% set crumb = "tags" %}{% endif %}
 {% set page_title = title ~ " · Victor Santos" %}
@@ -222,6 +226,8 @@ window.FILES = [
   { name:{{ p.extra.filename | json_encode | safe }}, path:{{ p.extra.filename | json_encode | safe }}, url:{{ p.permalink | json_encode | safe }} },
   {%- endfor %}
   {%- for spath in root.subsections -%}{%- set s = get_section(path=spath) -%}
+  {%- set ixpath = s.extra.filename ~ "/_index.md" -%}
+  { name:"_index.md", path:{{ ixpath | json_encode | safe }}, url:{{ s.permalink | json_encode | safe }} },
   {%- for p in s.pages %}
   {%- set fp = s.extra.filename ~ "/" ~ p.extra.filename -%}
   { name:{{ p.extra.filename | json_encode | safe }}, path:{{ fp | json_encode | safe }}, url:{{ p.permalink | json_encode | safe }} },
