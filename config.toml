@@ -15,7 +15,8 @@ build_search_index = false
 taxonomies = [{ name = "tags", feed = true }]
 
 [markdown]
-# We style code blocks ourselves in editor.css; no server-side highlighting.
+# Code is highlighted client-side in editor.js (theme-aware via CSS variables,
+# so ink/paper both work) rather than baking fixed colors into the HTML.
 smart_punctuation = false
 
 [extra]
