@@ -276,8 +276,7 @@ body{
 .tab.active::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent)}
 .tab .nm{overflow:hidden;text-overflow:ellipsis}
 .tab .mod{width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
-.tab .x{width:18px;height:18px;display:grid;place-items:center;border-radius:5px;color:var(--text-faint);opacity:0;transition:.12s}
-.tab:hover .x{opacity:1}
+.tab .x{width:18px;height:18px;display:grid;place-items:center;border-radius:5px;color:var(--text-faint);opacity:1;transition:.12s}
 .tab .x:hover{background:var(--bg-hover);color:var(--text)}
 .tab .x svg{width:11px;height:11px}
 
