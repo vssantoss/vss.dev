@@ -1,37 +1,57 @@
-{# File-tree sidebar. Renders every content file as a real <a> link.
-   The active node + folder toggles are handled client-side in editor.js. #}
+{# Explorer sidebar.
+   Renders content as real links so the site works without client-side routing.
+   Active states, folder toggles, and keyboard behavior live in editor.js. #}
 {% macro tree() %}
   {% set root = get_section(path="_index.md") %}
+
+  {# The site root appears as README.md, matching the editor metaphor. #}
   <a class="node file" href="{{ get_url(path="@/_index.md") | safe }}" data-name="README.md">
     <span class="chev"></span><span class="fileicon">MD</span><span>README.md</span>
   </a>
+
+  {# Root-level pages such as now.md, changelog.md, and contact.md. #}
   {% for p in root.pages | sort(attribute="extra.order") %}
   <a class="node file" href="{{ p.permalink | safe }}" data-name="{{ p.extra.filename }}">
     <span class="chev"></span><span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
   </a>
   {% endfor %}
+
+  {# Sections are ordered by their section weight in content/*/_index.md. #}
   {% for spath in root.subsections %}
-    {% set s = get_section(path=spath) %}
-    {% set lim = s.extra.sidebar_limit | default(value=0) %}
-    {% if lim > 0 %}{% set shown = s.pages | slice(end=lim) %}{% else %}{% set shown = s.pages %}{% endif %}
-    <div class="node folder" data-folder="{{ s.extra.filename }}" role="button" tabindex="0" aria-expanded="true">
-      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
-      <span class="ix"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v10H3z"/></svg></span>{{ s.extra.filename }}/
-    </div>
-    <div class="children">
-      <a class="node file indent" href="{{ s.permalink | safe }}" data-name="_index.md">
-        <span class="chev"></span><span class="fileicon">MD</span><span>_index.md</span>
-      </a>
-      {% for p in shown %}
-      <a class="node file indent" href="{{ p.permalink | safe }}" data-name="{{ p.extra.filename }}">
-        <span class="chev"></span><span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
-      </a>
-      {% endfor %}
-      {% if lim > 0 and s.pages | length > lim %}
-      <a class="node more indent" href="{{ s.permalink | safe }}">
-        <span class="chev"></span><span class="more-ix">⋯</span><span>{{ s.pages | length - lim }} more</span>
-      </a>
-      {% endif %}
-    </div>
+    {{ self::folder(spath=spath) }}
   {% endfor %}
+{% endmacro %}
+
+{# Render one content section as a collapsible folder plus its child pages. #}
+{% macro folder(spath) %}
+  {% set s = get_section(path=spath) %}
+
+  {# Some sections can cap the sidebar list and link to the rest. #}
+  {% set lim = s.extra.sidebar_limit | default(value=0) %}
+  {% if lim > 0 %}{% set shown = s.pages | slice(end=lim) %}{% else %}{% set shown = s.pages %}{% endif %}
+
+  {# Folder row. The collapsed/open state is controlled by editor.js. #}
+  <div class="node folder collapsed" data-folder="{{ s.extra.filename }}" role="button" tabindex="0" aria-expanded="false">
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
+    <span class="ix"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v10H3z"/></svg></span>{{ s.extra.filename }}/
+  </div>
+
+  {# Folder children: the section index first, then the section pages. #}
+  <div class="children closed">
+    <a class="node file indent" href="{{ s.permalink | safe }}" data-name="_index.md">
+      <span class="chev"></span><span class="fileicon">MD</span><span>_index.md</span>
+    </a>
+    {% for p in shown %}
+    <a class="node file indent" href="{{ p.permalink | safe }}" data-name="{{ p.extra.filename }}">
+      <span class="chev"></span><span class="fileicon">MD</span><span>{{ p.extra.filename }}</span>
+    </a>
+    {% endfor %}
+
+    {# If sidebar_limit hid pages, show a compact link to the full section. #}
+    {% if lim > 0 and s.pages | length > lim %}
+    <a class="node more indent" href="{{ s.permalink | safe }}">
+      <span class="chev"></span><span class="more-ix">⋯</span><span>{{ s.pages | length - lim }} more</span>
+    </a>
+    {% endif %}
+  </div>
 {% endmacro %}

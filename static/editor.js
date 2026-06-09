@@ -76,22 +76,12 @@
 
   /* ---------- tree: active node + folder toggles ---------- */
 
-  // Highlight the file matching the current URL and reveal its folder chain.
+  // Highlight the file matching the current URL.
   function markTree() {
     const cur = getCur();
     document.querySelectorAll(".tree .node.file").forEach((n) => {
       const active = norm(n.getAttribute("href")) === cur;
       n.classList.toggle("active", active);
-      if (active) {
-
-        // Open the enclosing folder so the active file is actually visible.
-        const kids = n.closest(".children");
-        if (kids) {
-          kids.classList.remove("closed");
-          const folder = kids.previousElementSibling;
-          if (folder && folder.classList.contains("folder")) { folder.classList.remove("collapsed"); folder.setAttribute("aria-expanded", "true"); }
-        }
-      }
     });
   }
 
