@@ -5,7 +5,7 @@ sort_by = "date"
 weight = 2
 [extra]
 filename = "tips"
-order = 6
+order = 5
 icon = "folder"
 +++
 
