@@ -812,14 +812,15 @@
   if (btnMin) btnMin.addEventListener("click", () => hideWindow(false));
   if (btnClose) btnClose.addEventListener("click", () => hideWindow(true));
 
-  // Crossing into mobile resets to the full-screen layout and never strands a
-  // hidden window.
+  // Crossing into mobile drops desktop-only floating/maximized geometry and
+  // restores the full-screen layout. A minimized/closed window stays that way
+  // (the launcher works the same on mobile), so don't disturb the hidden state.
   mqMobile.addEventListener("change", (e) => {
     if (e.matches) {
-      win && win.classList.remove("free", "maximized", "hidden");
+      win && win.classList.remove("free", "maximized");
       isFree = false; savedGeom = null;
       if (win) win.style.left = win.style.top = win.style.width = win.style.height = "";
-      if (launcher) launcher.hidden = true;
+      if (launcher && win && !win.classList.contains("hidden")) launcher.hidden = true;
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
     } else { clampGeom(); }
   });
@@ -907,10 +908,12 @@
       icon.col = cell.c; icon.row = cell.r; occ.set(key(cell.c, cell.r), id);
       icons.push(icon); place(icon);
 
-      // `moved` distinguishes a drag from a click so open doesn't fire on drop.
+      // `moved` distinguishes a drag from a tap so open doesn't fire on drop.
+      // The icon behaves the same at every screen size: always draggable, one
+      // tap to open (so it is NOT gated on desktopMode).
       let moved = false;
       el.addEventListener("pointerdown", (e) => {
-        if (!desktopMode() || e.button !== 0) return;
+        if (e.button !== 0) return;
         moved = false;
         const sx = e.clientX, sy = e.clientY, ox = parseFloat(el.style.left) || 0, oy = parseFloat(el.style.top) || 0;
         el.setPointerCapture(e.pointerId);
@@ -927,19 +930,19 @@
           el.removeEventListener("pointermove", move);
           el.removeEventListener("pointerup", up);
 
-          // On drop, snap to the nearest cell and persist.
+          // A drag snaps to the nearest cell and persists; a tap (no movement)
+          // opens the window. Identical on desktop and mobile.
           if (moved) {
             el.classList.remove("dragging");
             const cell = pxToCell(parseFloat(el.style.left) || 0, parseFloat(el.style.top) || 0);
             assign(icon, cell.c, cell.r); save();
-          }
+          } else if (opts.onOpen) opts.onOpen();
         };
         el.addEventListener("pointermove", move);
         el.addEventListener("pointerup", up);
       });
 
-      // Open on double-click (unless it was a drag) or keyboard activation.
-      el.addEventListener("dblclick", () => { if (!moved && opts.onOpen) opts.onOpen(); });
+      // Keyboard activation opens the window (dragging is pointer-only).
       el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (opts.onOpen) opts.onOpen(); } });
       return icon;
     }
@@ -957,7 +960,8 @@
     return { register };
   })();
 
-  // Register the window's desktop launcher icon (label from the titlebar).
+  // Register the window's launcher icon (label from the titlebar). Same on every
+  // screen size: a draggable desktop icon you tap once to reopen the window.
   if (DESK && launcher) DESK.register(launcher, { titleEl: $(".titlebar .who"), onOpen: showWindow });
 
   /* ---------- command palette ---------- */

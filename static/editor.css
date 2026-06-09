@@ -629,10 +629,19 @@ html[data-theme="paper"] .statusbar{color:#fff}
     border-radius:0;border:none;
   }
 
-  /* window-management is desktop-only: neutralize controls, grips and icons */
-  .dots .dot{pointer-events:none}
+  /* No free-floating window on mobile, so drop the resize grips and neutralize
+     the green "maximize" dot (the window already fills the screen). Close (red)
+     and minimize (yellow) stay tappable so the window can be dismissed.
+     The desktop icon layer stays visible: the launcher is the same draggable
+     grid icon here as on desktop, so it is intentionally NOT hidden. */
   .win-handle{display:none}
-  .desktop{display:none}
+  .dots .dot.g{pointer-events:none}
+
+  /* Roomier, finger-sized hit targets for the two live dots without changing
+     their drawn size. */
+  .dots{gap:16px}
+  .dots .dot{position:relative}
+  .dots .dot::after{content:"";position:absolute;inset:-7px}
 }
 
 /* Respect reduced-motion: kill the entrance animations. */
