@@ -512,10 +512,23 @@
   // Set an attribute on a head element if it exists.
   function setMeta(sel, attr, val) { const el = $(sel); if (el) el.setAttribute(attr, val); }
 
+  // The mini-app name for an /app/<name>/ URL, or null for any other URL.
+  function appNameForUrl(u) {
+    const m = new URL(u, location.href).pathname.match(/^\/app\/([^\/]+)\/?$/);
+    return m ? m[1] : null;
+  }
+
   // Fetch a page and swap it in without a full reload; fall back to a real
   // navigation on any error. `push` controls whether history gets a new entry.
   function navigate(url, push) {
     const abs = new URL(url, location.href).href;
+
+    // An /app/<name>/ URL is a mini-app, not a content page: launch it over the
+    // website rather than fetching its boot stub as page content. This covers
+    // popstate (Back/Forward landing on an app URL, e.g. the entry the page was
+    // opened at) as well as any programmatic navigate to an app URL.
+    const appName = appNameForUrl(abs);
+    if (appName) { closePalette(); WM.launch(appName, abs); return; }
 
     // Already here: just clean up overlays.
     if (norm(abs) === getCur()) { if (welcomeActive) reopenCurrent(); closePalette(); return; }
@@ -581,8 +594,8 @@
 
     // A /app/<name>/ link launches the mini-app over the website instead of
     // swapping page content.
-    const appMatch = url.pathname.match(/^\/app\/([^\/]+)\/?$/);
-    if (appMatch) { e.preventDefault(); WM.launch(appMatch[1], url.href); return; }
+    const appName = appNameForUrl(url);
+    if (appName) { e.preventDefault(); WM.launch(appName, url.href); return; }
 
     // Same-origin page: intercept and navigate via SPA.
     e.preventDefault();
