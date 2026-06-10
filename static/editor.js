@@ -642,7 +642,15 @@
 
   const win = $(".window"), stage = $(".stage"), titlebar = $(".titlebar");
   const launcher = $("#icon-window");
-  const btnClose = $("#win-close"), btnMin = $("#win-min"), btnMax = $("#win-max");
+
+  // The kernel window's maximize button (only the website maximizes). Its close /
+  // minimize / maximize controls are wired uniformly through wireWindowChrome once
+  // the website joins the window manager as a first-class record (see below).
+  const btnMax = $(".window > .titlebar [data-win-max]");
+
+  // The website's WM record, assigned once the window manager exists. Declared up
+  // here so earlier closures (e.g. the launcher's onOpen) can reference it.
+  let websiteRec = null;
 
   // Window management is desktop-only; below this width the window is full-screen.
   const mqMobile = window.matchMedia("(max-width:840px)");
@@ -651,12 +659,13 @@
   // Read a pixel style value as a number.
   const px = (el, p) => parseFloat(el.style[p]) || 0;
 
-  // `isFree` = the window has been dragged/resized off its default centered slot.
-  let isFree = false, savedGeom = null;
+  // Geometry the maximize button stashes so "restore" can return a free window.
+  let savedGeom = null;
 
   // Promote a window to free-floating by freezing its current geometry inline.
-  // Defaults to the kernel window; app windows are born free, so this is a no-op
-  // for them. Only the kernel tracks the `isFree` flag.
+  // Defaults to the kernel window; app windows are born free (the `.free` class),
+  // so this is a no-op for them. The `.free` class is the single source of truth
+  // for "has been detached from its default slot" across every window.
   function makeFree(w) {
     w = w || win;
     if (!w || !stage || w.classList.contains("free")) return;
@@ -666,7 +675,6 @@
     w.style.width = r.width + "px";
     w.style.height = r.height + "px";
     w.classList.add("free");
-    if (w === win) isFree = true;
   }
 
   // Keep a free window's top-left within the stage bounds (any window).
@@ -681,25 +689,8 @@
     w.style.top = Math.min(Math.max(px(w, "top"), minY), maxY) + "px";
   }
 
-  // Drag by the titlebar (but not its buttons).
-  if (titlebar) titlebar.addEventListener("pointerdown", (e) => {
-    if (!desktopMode() || e.button !== 0) return;
-    if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
-    if (win.classList.contains("maximized")) return;
-    makeFree();
-    const sx = e.clientX, sy = e.clientY, ox = px(win, "left"), oy = px(win, "top");
-    win.classList.add("dragging");
-    titlebar.setPointerCapture(e.pointerId);
-    const move = (ev) => { win.style.left = (ox + ev.clientX - sx) + "px"; win.style.top = (oy + ev.clientY - sy) + "px"; clampGeom(); };
-    const up = () => {
-      titlebar.releasePointerCapture(e.pointerId);
-      titlebar.removeEventListener("pointermove", move);
-      titlebar.removeEventListener("pointerup", up);
-      win.classList.remove("dragging");
-    };
-    titlebar.addEventListener("pointermove", move);
-    titlebar.addEventListener("pointerup", up);
-  });
+  // Titlebar drag is wired uniformly for every window (kernel included) by
+  // attachTitlebarDrag, once the WM and the website record exist (see below).
 
   // Double-clicking the titlebar maximizes / restores.
   if (titlebar) titlebar.addEventListener("dblclick", (e) => {
@@ -777,7 +768,7 @@
 
       // Remember a free window's geometry so restore can return to it, then let
       // the fixed inset:0 maximized rule take over.
-      savedGeom = isFree ? { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height } : null;
+      savedGeom = win.classList.contains("free") ? { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height } : null;
       win.style.left = win.style.top = win.style.width = win.style.height = "";
       win.classList.add("maximized");
       btnMax && btnMax.setAttribute("aria-label", "Restore");
@@ -794,7 +785,7 @@
     if (!win) return;
     if (reset) {
       win.classList.remove("free", "maximized");
-      isFree = false; savedGeom = null;
+      savedGeom = null;
       win.style.left = win.style.top = win.style.width = win.style.height = "";
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
       closedReset = true;
@@ -826,16 +817,15 @@
     if (!win) return;
     win.style.animation = "none"; void win.offsetHeight; win.style.animation = "";
   }
-  if (btnMax) btnMax.addEventListener("click", toggleMax);
-  if (btnMin) btnMin.addEventListener("click", () => hideWindow(false));
-  if (btnClose) btnClose.addEventListener("click", () => hideWindow(true));
+  // The kernel window's close / minimize / maximize controls are wired through the
+  // shared wireWindowChrome path once the website record exists (see below).
 
   // Crossing into mobile drops desktop-only floating/maximized geometry and
   // restores the full-screen layout. A minimized/closed window stays that way.
   mqMobile.addEventListener("change", (e) => {
     if (e.matches) {
       win && win.classList.remove("free", "maximized");
-      isFree = false; savedGeom = null;
+      savedGeom = null;
       if (win) win.style.left = win.style.top = win.style.width = win.style.height = "";
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
     } else { clampGeom(); }
@@ -981,7 +971,7 @@
   // minimized, otherwise raises it above any open app (focus).
   if (DESK && launcher) DESK.register(launcher, {
     titleEl: $(".titlebar .who"),
-    onOpen: () => { if (win && win.classList.contains("hidden")) showWindow(); else WM.focusWebsite(); },
+    onOpen: () => { showWindow(); if (websiteRec) WM.focus(websiteRec); },
   });
 
   /* ---------- command palette ---------- */
@@ -1048,24 +1038,30 @@
 
   const tmplWindow = $("#tmpl-window"), tmplDialog = $("#tmpl-dialog");
 
-  // Highest z-index handed out so far; each focus raises a window above the rest.
-  // The stage is its own stacking context (z-index:1), so the command palette
-  // (a body-level overlay) still sits above every app window.
-  let zTop = 40;
+  // Z-index bands inside the stage (its own stacking context, z-index:1, so the
+  // command palette and other body-level overlays still sit above everything
+  // here). Windows are re-packed on focus into a tiny fixed range starting at
+  // Z_WINDOWS (see WM.restack), so there's no ever-growing counter; dialogs float
+  // above every window at Z_DIALOGS, ordered among themselves by DOM order.
+  const Z_WINDOWS = 40, Z_DIALOGS = 200;
 
   // True when the page was opened directly at an /app/<name>/ URL: the kernel
   // window was minimized at boot and should be restored when the app closes.
   let bootedIntoApp = false;
 
-  // Drag an app window by its titlebar (app windows are born free-floating, so no
-  // makeFree dance is needed). `onFocus` raises the window as the drag starts.
+  // Drag any window by its titlebar. `onFocus` raises the window as the drag
+  // starts. makeFree promotes the kernel window off its default slot on first
+  // drag; app windows are born `.free`, so it's a no-op for them. A maximized
+  // window doesn't drag.
   function attachTitlebarDrag(w, onFocus) {
     const tb = w.querySelector(".titlebar");
     if (!tb) return;
     tb.addEventListener("pointerdown", (e) => {
       if (!desktopMode() || e.button !== 0) return;
       if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
+      if (w.classList.contains("maximized")) return;
       if (onFocus) onFocus();
+      makeFree(w);
       const sx = e.clientX, sy = e.clientY, ox = px(w, "left"), oy = px(w, "top");
       w.classList.add("dragging");
       tb.setPointerCapture(e.pointerId);
@@ -1111,47 +1107,73 @@
     });
     const x = el.querySelector("[data-win-close]"); if (x) x.addEventListener("click", close);
     el.style.left = el.style.top = "-9999px";
+    el.style.zIndex = Z_DIALOGS;
     stage.appendChild(el);
-    el.style.zIndex = (zTop += 1);
-    attachTitlebarDrag(el, () => { el.style.zIndex = (zTop += 1); });
+    // Dialogs share one z band; raising one to the front is just moving it to the
+    // end of the stage so it paints over its equal-z siblings.
+    attachTitlebarDrag(el, () => { stage.appendChild(el); });
     placeCenter(el);
     return { el, close };
   }
 
-  // The window manager: owns every app window plus the focus / z-order / URL rules.
+  // Wire a window record's traffic-light controls to the WM. Every window (kernel
+  // and apps) carries the same [data-win-close/min/max] buttons; this is the one
+  // path that connects them. A window without a given button simply skips it.
+  function wireWindowChrome(rec) {
+    const el = rec.el;
+    const c = el.querySelector("[data-win-close]");
+    if (c) c.addEventListener("click", () => WM.close(rec));
+    const m = el.querySelector("[data-win-min]");
+    if (m) m.addEventListener("click", () => WM.minimize(rec));
+    const x = el.querySelector("[data-win-max]");
+    if (x) x.addEventListener("click", () => WM.maximize(rec));
+  }
+
+  // The window manager: owns every window (the permanent kernel record plus each
+  // app window) under one focus / z-order / URL / lifecycle policy.
   const WM = {
-    apps: [],   // [{ name, url, el, mod, api, kind, focusedAt, _themeCbs }]
+    // Every tracked window, including the website. App records carry
+    // { name, url, el, mod, api, kind, focusedAt, _themeCbs, closable }; the
+    // website record carries { name, kind:"website", el, closable:false, url(),
+    // onClose, focusedAt }.
+    windows: [],
 
-    byName(name) { return this.apps.find((r) => r.name === name); },
+    register(rec) { this.windows.push(rec); return rec; },
 
-    // Frontmost visible app (most recently focused), or null.
+    // The app windows only (everything that isn't the permanent kernel record).
+    apps() { return this.windows.filter((r) => r.kind !== "website"); },
+
+    byName(name) { return this.windows.find((r) => r.name === name); },
+
+    // Frontmost visible window (most recently focused), or null. Includes the
+    // website, so closing the last app falls back to the website if it's showing.
     topVisible(except) {
-      return this.apps
+      return this.windows
         .filter((r) => r !== except && !r.el.classList.contains("hidden"))
         .reduce((a, b) => (!a || b.focusedAt > a.focusedAt ? b : a), null);
     },
 
+    // Re-pack every window's z-index by recency (oldest at Z_WINDOWS, frontmost on
+    // top). The kernel and the apps share one band, so focusing the website brings
+    // it over any open app and vice-versa. There are only a handful of windows, so
+    // this stays a tiny bounded range instead of an ever-climbing counter.
+    restack() {
+      this.windows.slice()
+        .sort((a, b) => a.focusedAt - b.focusedAt)
+        .forEach((r, i) => { r.el.style.zIndex = Z_WINDOWS + i; });
+    },
+
     // Raise a window, mark it focused, and point the address bar at it. Focus
-    // changes use replaceState only, so they never add history entries.
+    // changes use replaceState only, so they never add history entries. `url` may
+    // be a string or a getter.
     focus(rec) {
       if (!rec) return;
       rec.el.classList.remove("hidden");
-      rec.el.style.zIndex = (zTop += 1);
       rec.focusedAt = Date.now();
-      this.apps.forEach((r) => r.el.classList.toggle("focused", r === rec));
-      try { history.replaceState({ url: CURRENT.url, app: rec.name }, "", rec.url); } catch (e) {}
-    },
-
-    // Raise the kernel website window above the apps and make it the focused
-    // surface again. The kernel draws from the same `zTop` pool as apps, so
-    // clicking the website brings it over any open app (and clicking an app
-    // brings that back over the website). Desktop only: on mobile an app is
-    // full-screen and the website is reached by closing/minimizing the app.
-    focusWebsite() {
-      if (!desktopMode()) return;
-      win.style.zIndex = (zTop += 1);
-      this.apps.forEach((r) => r.el.classList.remove("focused"));
-      this.restoreWebsiteUrl();
+      this.restack();
+      this.windows.forEach((r) => r.el.classList.toggle("focused", r === rec));
+      const u = typeof rec.url === "function" ? rec.url() : rec.url;
+      try { history.replaceState({ url: CURRENT.url, app: rec.name }, "", u); } catch (e) {}
     },
 
     // Open (or focus) an app by name. `url` is its /app/<name>/ address.
@@ -1163,9 +1185,10 @@
       // Enforce the concurrency cap (1 on mobile, MAX_APPS on desktop) with LRU
       // eviction: opening past the cap closes the least-recently-focused app.
       const cap = desktopMode() ? MAX_APPS : 1;
-      while (this.apps.length >= cap) {
-        const lru = this.apps.reduce((a, b) => (a.focusedAt <= b.focusedAt ? a : b));
-        this.close(lru);
+      let live = this.apps();
+      while (live.length >= cap) {
+        this.close(live.reduce((a, b) => (a.focusedAt <= b.focusedAt ? a : b)));
+        live = this.apps();
       }
 
       import("/apps/" + name + ".js").then((m) => {
@@ -1174,26 +1197,38 @@
         const rec = buildApp(name, url, mod);
         try { mod.mount(rec.el, rec.api); } catch (e) { console.error(e); }
         tick();
-        this.apps.push(rec);
-        placeCenter(rec.el, this.apps.length - 1);
+        this.register(rec);
+        placeCenter(rec.el, this.apps().length - 1);
         this.focus(rec);
       }).catch((err) => { console.error("Failed to load app '" + name + "':", err); });
     },
 
-    // Minimize: hide the window; its always-present desktop icon reopens it.
+    // Minimize: hide the window; its always-present desktop icon reopens it. Then
+    // focus whatever is now frontmost, or restore the website URL if nothing is.
     minimize(rec) {
       rec.el.classList.add("hidden");
       const next = this.topVisible(rec);
       if (next) this.focus(next); else this.restoreWebsiteUrl();
     },
 
-    // Close: unmount, drop the DOM and references, then refocus whatever is now
-    // frontmost (another app, or the website).
+    // Maximize/restore. Only the website has a maximize control today; toggleMax
+    // operates on the kernel window.
+    maximize(rec) { toggleMax(); },
+
+    // Close. A permanent window (the website, closable:false) isn't destroyed: its
+    // onClose resets it to a fresh first visit, then focus falls to whatever else
+    // is frontmost. App windows are unmounted, dropped from the DOM, and forgotten.
     close(rec) {
+      if (rec.closable === false) {
+        if (rec.onClose) rec.onClose();
+        const next = this.topVisible(rec);
+        if (next) this.focus(next);
+        return;
+      }
       try { rec.mod.unmount && rec.mod.unmount(); } catch (e) { console.error(e); }
       if (rec._themeCbs) rec._themeCbs.forEach((cb) => appThemeCbs.delete(cb));
       rec.el.remove();
-      this.apps = this.apps.filter((r) => r !== rec);
+      this.windows = this.windows.filter((r) => r !== rec);
       const top = this.topVisible(null);
       if (top) this.focus(top);
 
@@ -1236,16 +1271,13 @@
     el.style.left = el.style.top = "-9999px";
     stage.appendChild(el);
 
-    const rec = { name, url, el, mod, kind, api: null, focusedAt: Date.now(), _themeCbs: [] };
+    const rec = { name, url, el, mod, kind, api: null, focusedAt: Date.now(), _themeCbs: [], closable: true };
     rec.api = makeApi(rec);
 
-    const closeBtn = el.querySelector("[data-win-close]");
-    if (closeBtn) closeBtn.addEventListener("click", () => WM.close(rec));
-    const minBtn = el.querySelector("[data-win-min]");
-    if (minBtn) minBtn.addEventListener("click", () => WM.minimize(rec));
-
-    // Clicking anywhere on the window raises it; the titlebar drags it; window
+    // Clicking anywhere on the window raises it; the traffic-light controls and
+    // the titlebar drag go through the same shared paths as the kernel; window
     // apps also get the eight resize grips.
+    wireWindowChrome(rec);
     el.addEventListener("pointerdown", () => WM.focus(rec), true);
     attachTitlebarDrag(el, () => WM.focus(rec));
     if (kind === "window") addResizeGrips(el);
@@ -1263,9 +1295,21 @@
     };
   }
 
-  // The kernel website window joins the same z-order as the apps: a pointerdown
-  // anywhere on it raises it above any open app window (desktop only).
-  if (win) win.addEventListener("pointerdown", () => WM.focusWebsite(), true);
+  // Register the kernel website as a first-class window: same focus / z-order /
+  // chrome / drag paths as any app, but permanent (closable:false, so its close
+  // resets to a fresh first visit instead of destroying the window). It shares the
+  // same z-order band as the apps, so a pointerdown anywhere on it raises it above
+  // any open app (desktop only; on mobile an app is full-screen and the website is
+  // reached by closing/minimizing the app). Its URL is the live page address.
+  if (win) {
+    websiteRec = WM.register({
+      name: "website", kind: "website", el: win, closable: false,
+      url: () => CURRENT.url, onClose: () => hideWindow(true), focusedAt: 0,
+    });
+    wireWindowChrome(websiteRec);
+    attachTitlebarDrag(win, () => WM.focus(websiteRec));
+    win.addEventListener("pointerdown", () => { if (desktopMode()) WM.focus(websiteRec); }, true);
+  }
 
   // Register the per-app desktop icons (always visible) to launch their apps.
   if (DESK) document.querySelectorAll("#desktop .desk-icon[data-app]").forEach((el) => {
