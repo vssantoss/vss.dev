@@ -50,7 +50,9 @@
 <meta name="description" content="{{ desc }}">
 <link rel="canonical" href="{{ current_url | safe }}">
 <meta name="author" content="{{ config.extra.author }}">
-<meta name="robots" content="index, follow">
+{# App boot-stubs and other hidden routes stay out of the index. #}
+{% set noindex = (page and page.extra.app) or (page and page.extra.hidden) or (section and section.extra.hidden) %}
+<meta name="robots" content="{% if noindex %}noindex, nofollow{% else %}index, follow{% endif %}">
 <meta name="theme-color" content="#17161c">
 
 {# ---- Open Graph / Twitter ---- #}
@@ -90,17 +92,26 @@
 {% endif %}
 </head>
 
-<body>
+<body{% if page and page.extra.app %} data-app="{{ page.extra.app }}"{% endif %}>
 <div class="backdrop"></div>
 
 <div class="stage">
 
-<!-- DESKTOP ICONS (snap-to-grid, draggable; launcher shows only when the window is hidden) -->
+<!-- DESKTOP ICONS (snap-to-grid, draggable). The website launcher and the app
+     icons are always visible; each one opens or focuses its window. -->
 <div class="desktop" id="desktop">
-  <button class="desk-icon" id="icon-window" data-icon="window" type="button" hidden aria-label="Open vss.dev window">
+  <button class="desk-icon" id="icon-window" data-icon="window" type="button" aria-label="Open vss.dev window">
     <span class="desk-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><path d="M3 9h18"/><path d="M6 6.6h.01M8.4 6.6h.01"/></svg></span>
     <span class="desk-label"></span>
   </button>
+  {# One launch icon per mini-app, data-driven from the content/app section. #}
+  {% set appsec = get_section(path="app/_index.md") %}
+  {% for ap in appsec.pages %}
+  <button class="desk-icon" data-icon="app-{{ ap.extra.app }}" data-app="{{ ap.extra.app }}" data-app-url="{{ ap.permalink | safe }}" type="button" aria-label="Open {{ ap.title }}">
+    <span class="desk-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg></span>
+    <span class="desk-label">{{ ap.title }}</span>
+  </button>
+  {% endfor %}
 </div>
 
 <div class="window">
@@ -206,6 +217,41 @@
 </div>
 </div>
 
+<!-- MINI-APP SHELLS (cloned by editor.js; same window structure as the kernel,
+     minus the sidebar/activity bar and with only the slots an app needs) -->
+<template id="tmpl-window">
+  <div class="window free app">
+    <div class="titlebar">
+      <div class="dots">
+        <button class="dot r" data-win-close type="button" title="Close" aria-label="Close"></button>
+        <button class="dot y" data-win-min type="button" title="Minimize" aria-label="Minimize"></button>
+      </div>
+      <div class="who"><b class="app-title"></b></div>
+      <div class="right"></div>
+    </div>
+    <div class="body">
+      <div class="main app-host"></div>
+    </div>
+    <div class="statusbar">
+      <div class="grow"></div>
+      <div class="si hov app-clock">--:--</div>
+    </div>
+  </div>
+</template>
+<template id="tmpl-dialog">
+  <div class="window free app dialog">
+    <div class="titlebar">
+      <div class="dots">
+        <button class="dot r" data-win-close type="button" title="Close" aria-label="Close"></button>
+      </div>
+      <div class="who"><b class="app-title"></b></div>
+      <div class="right"></div>
+    </div>
+    <div class="dialog-body app-host"></div>
+    <div class="dialog-actions"></div>
+  </div>
+</template>
+
 <!-- COMMAND PALETTE -->
 <div class="palette-bg" id="palette-bg">
   <div class="palette" role="dialog" aria-label="Command palette">
@@ -228,12 +274,14 @@ window.FILES = [
   { name:{{ p.extra.filename | json_encode | safe }}, path:{{ p.extra.filename | json_encode | safe }}, url:{{ p.permalink | json_encode | safe }} },
   {%- endfor %}
   {%- for spath in root.subsections -%}{%- set s = get_section(path=spath) -%}
+  {%- if not s.extra.hidden -%}
   {%- set ixpath = s.extra.filename ~ "/_index.md" -%}
   { name:"_index.md", path:{{ ixpath | json_encode | safe }}, url:{{ s.permalink | json_encode | safe }} },
   {%- for p in s.pages %}
   {%- set fp = s.extra.filename ~ "/" ~ p.extra.filename -%}
   { name:{{ p.extra.filename | json_encode | safe }}, path:{{ fp | json_encode | safe }}, url:{{ p.permalink | json_encode | safe }} },
   {%- endfor %}
+  {%- endif -%}
   {%- endfor %}
 ];
 </script>

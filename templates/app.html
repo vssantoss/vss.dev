@@ -1,0 +1,6 @@
+{# Mini-app boot stub. Renders the live kernel chrome (so the page is a real,
+   working website), but base.html reads `page.extra.app` to mark it noindex and
+   stamp `data-app` on <body>; editor.js then minimizes the website window and
+   launches the app on boot. Kept as its own template so app routes can diverge
+   from regular pages later. #}
+{% extends "base.html" %}

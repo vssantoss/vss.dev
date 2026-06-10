@@ -601,6 +601,48 @@ html[data-theme="paper"] .statusbar{color:#fff}
 .desk-glyph svg{width:24px;height:24px}
 .desk-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
 
+/* ============================== MINI-APP WINDOWS ============================== */
+
+/* App windows reuse .window/.window.free but float free and size to content
+   (dialog) or to an inline default (window-kind), so the kernel's fixed
+   width/height/min caps are reset here. */
+.window.app{
+  width:auto;height:auto;max-width:none;max-height:none;
+  min-width:280px;min-height:0;
+  animation:appin .24s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes appin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+
+/* The focused app window gets a stronger shadow + an accent hairline. */
+.window.app.focused{
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 50px 110px -30px rgba(0,0,0,.8),0 14px 40px -16px rgba(0,0,0,.7);
+  outline:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+}
+.window.app .titlebar .who b{color:var(--text)}
+
+/* Window-kind body: the content host fills the area below the titlebar. */
+.window.app .main.app-host{background:var(--bg-editor);overflow:auto}
+
+/* Dialog: title + message + a right-aligned button row, no status bar. */
+.window.app.dialog{min-width:300px}
+.window.app.dialog .dialog-body{
+  flex:1;min-height:40px;padding:22px 22px 8px;
+  font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--text);
+}
+.window.app.dialog .dialog-actions{
+  flex:none;display:flex;justify-content:flex-end;gap:10px;padding:14px 18px 18px;
+}
+
+/* Dialog / app buttons (also used by api.createDialog). */
+.dlg-btn{
+  font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);background:var(--bg-panel);color:var(--text);transition:.14s;
+}
+.dlg-btn:hover{border-color:var(--accent);color:var(--text)}
+.dlg-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dlg-btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1208}
+html[data-theme="paper"] .dlg-btn.primary{color:#fff}
+
 /* ============================== RESPONSIVE ============================== */
 
 /* Window-relative: the chrome reflows to the window's own width, so dragging
@@ -642,6 +684,16 @@ html[data-theme="paper"] .statusbar{color:#fff}
   .dots{gap:16px}
   .dots .dot{position:relative}
   .dots .dot::after{content:"";position:absolute;inset:-7px}
+
+  /* App windows go full-screen too (one at a time on mobile); inline drag/resize
+     geometry is overridden and the resize grips are dropped. */
+  .window.app{
+    position:fixed;inset:0;
+    left:0!important;top:0!important;width:100%!important;height:100%!important;
+    max-width:none!important;max-height:none!important;min-width:0;
+    border-radius:0;border:none;
+  }
+  .window.app .win-handle{display:none}
 }
 
 /* Respect reduced-motion: kill the entrance animations. */

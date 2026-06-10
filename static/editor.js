@@ -336,11 +336,11 @@
     if ($("#st-words")) $("#st-words").textContent = words + " words";
   }
 
-  // Update the HH:MM clock in the status bar.
+  // Update the HH:MM clock in the kernel status bar and every open app window.
   function tick() {
     const d = new Date();
-    if ($("#st-clock")) $("#st-clock").textContent =
-      String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const t = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    document.querySelectorAll("#st-clock, .app-clock").forEach((el) => { el.textContent = t; });
   }
 
   /* ---------- decorate external links in prose ---------- */
@@ -579,12 +579,20 @@
     if (url.origin !== location.origin) return;
     if (/\.(xml|css|js|png|jpe?g|gif|svg|ico|txt|pdf)$/i.test(url.pathname)) return;
 
+    // A /app/<name>/ link launches the mini-app over the website instead of
+    // swapping page content.
+    const appMatch = url.pathname.match(/^\/app\/([^\/]+)\/?$/);
+    if (appMatch) { e.preventDefault(); WM.launch(appMatch[1], url.href); return; }
+
     // Same-origin page: intercept and navigate via SPA.
     e.preventDefault();
     navigate(url.href, true);
   });
 
   /* ---------- theme ---------- */
+
+  // Open mini-apps that asked to be told when the theme flips (api.onThemeChange).
+  const appThemeCbs = new Set();
 
   // Apply a theme ("ink" / "paper"), persist it, and swap the toggle's icon.
   function setTheme(t) {
@@ -593,6 +601,7 @@
     const moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
     const sun = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>';
     if ($("#theme-icon")) $("#theme-icon").innerHTML = t === "ink" ? moon : sun;
+    appThemeCbs.forEach((cb) => { try { cb(t); } catch (e) {} });
   }
   if ($("#btn-theme")) $("#btn-theme").addEventListener("click", () =>
     setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
@@ -645,27 +654,31 @@
   // `isFree` = the window has been dragged/resized off its default centered slot.
   let isFree = false, savedGeom = null;
 
-  // Promote the window to free-floating by freezing its current geometry inline.
-  function makeFree() {
-    if (isFree || !win || !stage) return;
-    const r = win.getBoundingClientRect(), s = stage.getBoundingClientRect();
-    win.style.left = (r.left - s.left) + "px";
-    win.style.top = (r.top - s.top) + "px";
-    win.style.width = r.width + "px";
-    win.style.height = r.height + "px";
-    win.classList.add("free");
-    isFree = true;
+  // Promote a window to free-floating by freezing its current geometry inline.
+  // Defaults to the kernel window; app windows are born free, so this is a no-op
+  // for them. Only the kernel tracks the `isFree` flag.
+  function makeFree(w) {
+    w = w || win;
+    if (!w || !stage || w.classList.contains("free")) return;
+    const r = w.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    w.style.left = (r.left - s.left) + "px";
+    w.style.top = (r.top - s.top) + "px";
+    w.style.width = r.width + "px";
+    w.style.height = r.height + "px";
+    w.classList.add("free");
+    if (w === win) isFree = true;
   }
 
-  // Keep a free window's top-left within the stage bounds.
-  function clampGeom() {
-    if (!win || !win.classList.contains("free")) return;
+  // Keep a free window's top-left within the stage bounds (any window).
+  function clampGeom(w) {
+    w = w || win;
+    if (!w || !w.classList.contains("free")) return;
     const s = stage.getBoundingClientRect();
-    const w = win.offsetWidth, h = win.offsetHeight;
-    const minX = Math.min(0, s.width - w), maxX = Math.max(0, s.width - w);
-    const minY = Math.min(0, s.height - h), maxY = Math.max(0, s.height - h);
-    win.style.left = Math.min(Math.max(px(win, "left"), minX), maxX) + "px";
-    win.style.top = Math.min(Math.max(px(win, "top"), minY), maxY) + "px";
+    const ww = w.offsetWidth, hh = w.offsetHeight;
+    const minX = Math.min(0, s.width - ww), maxX = Math.max(0, s.width - ww);
+    const minY = Math.min(0, s.height - hh), maxY = Math.max(0, s.height - hh);
+    w.style.left = Math.min(Math.max(px(w, "left"), minX), maxX) + "px";
+    w.style.top = Math.min(Math.max(px(w, "top"), minY), maxY) + "px";
   }
 
   // Drag by the titlebar (but not its buttons).
@@ -695,55 +708,61 @@
   });
 
   // 8-direction resize from a grip; `edge` is some combination of n/s/e/w.
-  function startResize(e, edge) {
-    if (!desktopMode() || e.button !== 0 || win.classList.contains("maximized")) return;
+  // Operates on the given window (defaults to the kernel window).
+  function startResize(e, edge, w) {
+    w = w || win;
+    if (!desktopMode() || e.button !== 0 || w.classList.contains("maximized")) return;
     e.preventDefault();
-    makeFree();
+    makeFree(w);
     const s = stage.getBoundingClientRect();
     const sx = e.clientX, sy = e.clientY;
-    const x0 = px(win, "left"), y0 = px(win, "top"), w0 = win.offsetWidth, h0 = win.offsetHeight;
-    const minW = 360, minH = 420;
-    win.classList.add("dragging");
+    const x0 = px(w, "left"), y0 = px(w, "top"), w0 = w.offsetWidth, h0 = w.offsetHeight;
+    const cs = getComputedStyle(w);
+    const minW = parseFloat(cs.minWidth) || 320, minH = parseFloat(cs.minHeight) || 220;
+    w.classList.add("dragging");
     e.target.setPointerCapture(e.pointerId);
     const move = (ev) => {
       const dx = ev.clientX - sx, dy = ev.clientY - sy;
-      let left = x0, top = y0, w = w0, h = h0;
+      let left = x0, top = y0, ww = w0, hh = h0;
 
       // Each edge in `edge` moves the matching side; west/north also shift the origin.
-      if (edge.includes("e")) w = w0 + dx;
-      if (edge.includes("s")) h = h0 + dy;
-      if (edge.includes("w")) { w = w0 - dx; left = x0 + dx; }
-      if (edge.includes("n")) { h = h0 - dy; top = y0 + dy; }
+      if (edge.includes("e")) ww = w0 + dx;
+      if (edge.includes("s")) hh = h0 + dy;
+      if (edge.includes("w")) { ww = w0 - dx; left = x0 + dx; }
+      if (edge.includes("n")) { hh = h0 - dy; top = y0 + dy; }
 
       // Enforce the minimum size without letting a west/north drag overshoot.
-      if (w < minW) { if (edge.includes("w")) left -= minW - w; w = minW; }
-      if (h < minH) { if (edge.includes("n")) top -= minH - h; h = minH; }
+      if (ww < minW) { if (edge.includes("w")) left -= minW - ww; ww = minW; }
+      if (hh < minH) { if (edge.includes("n")) top -= minH - hh; hh = minH; }
 
       // Clamp to the stage edges.
-      if (left < 0) { if (edge.includes("w")) w += left; left = 0; }
-      if (top < 0) { if (edge.includes("n")) h += top; top = 0; }
-      if (left + w > s.width) w = s.width - left;
-      if (top + h > s.height) h = s.height - top;
-      win.style.left = left + "px"; win.style.top = top + "px";
-      win.style.width = w + "px"; win.style.height = h + "px";
+      if (left < 0) { if (edge.includes("w")) ww += left; left = 0; }
+      if (top < 0) { if (edge.includes("n")) hh += top; top = 0; }
+      if (left + ww > s.width) ww = s.width - left;
+      if (top + hh > s.height) hh = s.height - top;
+      w.style.left = left + "px"; w.style.top = top + "px";
+      w.style.width = ww + "px"; w.style.height = hh + "px";
     };
     const up = () => {
       e.target.releasePointerCapture(e.pointerId);
       e.target.removeEventListener("pointermove", move);
       e.target.removeEventListener("pointerup", up);
-      win.classList.remove("dragging");
+      w.classList.remove("dragging");
     };
     e.target.addEventListener("pointermove", move);
     e.target.addEventListener("pointerup", up);
   }
 
-  // Create the eight resize grips and wire each to startResize.
-  if (win) ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((edge) => {
-    const h = document.createElement("div");
-    h.className = "win-handle " + edge;
-    h.addEventListener("pointerdown", (e) => startResize(e, edge));
-    win.appendChild(h);
-  });
+  // Create the eight resize grips on a window and wire each to startResize.
+  function addResizeGrips(w) {
+    ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((edge) => {
+      const h = document.createElement("div");
+      h.className = "win-handle " + edge;
+      h.addEventListener("pointerdown", (e) => startResize(e, edge, w));
+      w.appendChild(h);
+    });
+  }
+  if (win) addResizeGrips(win);
 
   // Maximize the window, or restore it to its saved free geometry.
   function toggleMax() {
@@ -768,8 +787,9 @@
   // True once the window was closed (vs minimized), so reopening starts fresh.
   let closedReset = false;
 
-  // Hide the window and reveal its desktop launcher. `reset` (close) also drops
-  // any free/maximized geometry so a reopen looks like a first visit.
+  // Hide the window. Its desktop launcher is always visible (like the app
+  // icons), so this just minimizes. `reset` (close) also drops any free/maximized
+  // geometry so a reopen looks like a first visit.
   function hideWindow(reset) {
     if (!win) return;
     if (reset) {
@@ -780,14 +800,12 @@
       closedReset = true;
     }
     win.classList.add("hidden");
-    if (launcher) launcher.hidden = false;
   }
 
   // Re-show the window; if it had been closed, reset state and replay the rise.
   function showWindow() {
     if (!win) return;
     win.classList.remove("hidden");
-    if (launcher) launcher.hidden = true;
     if (closedReset) { closedReset = false; resetToFirstVisit(); replayRise(); }
   }
 
@@ -813,14 +831,12 @@
   if (btnClose) btnClose.addEventListener("click", () => hideWindow(true));
 
   // Crossing into mobile drops desktop-only floating/maximized geometry and
-  // restores the full-screen layout. A minimized/closed window stays that way
-  // (the launcher works the same on mobile), so don't disturb the hidden state.
+  // restores the full-screen layout. A minimized/closed window stays that way.
   mqMobile.addEventListener("change", (e) => {
     if (e.matches) {
       win && win.classList.remove("free", "maximized");
       isFree = false; savedGeom = null;
       if (win) win.style.left = win.style.top = win.style.width = win.style.height = "";
-      if (launcher && win && !win.classList.contains("hidden")) launcher.hidden = true;
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
     } else { clampGeom(); }
   });
@@ -960,9 +976,13 @@
     return { register };
   })();
 
-  // Register the window's launcher icon (label from the titlebar). Same on every
-  // screen size: a draggable desktop icon you tap once to reopen the window.
-  if (DESK && launcher) DESK.register(launcher, { titleEl: $(".titlebar .who"), onOpen: showWindow });
+  // Register the window's launcher icon (label from the titlebar). It is always
+  // visible, just like the app icons: tapping it restores the window if it was
+  // minimized, otherwise raises it above any open app (focus).
+  if (DESK && launcher) DESK.register(launcher, {
+    titleEl: $(".titlebar .who"),
+    onOpen: () => { if (win && win.classList.contains("hidden")) showWindow(); else WM.focusWebsite(); },
+  });
 
   /* ---------- command palette ---------- */
 
@@ -1015,6 +1035,244 @@
     }
   });
 
+  /* ---------- mini-app window manager ----------
+
+     App windows reuse the kernel's window structure and the generic geometry
+     helpers above (makeFree/clampGeom/startResize). They are created at runtime
+     from the <template>s in base.html, loaded on demand, and torn down on close.
+  */
+
+  // Up to MAX_APPS app windows on desktop (a single knob); mobile shows one at a
+  // time (close/minimize one to open another).
+  const MAX_APPS = 3;
+
+  const tmplWindow = $("#tmpl-window"), tmplDialog = $("#tmpl-dialog");
+
+  // Highest z-index handed out so far; each focus raises a window above the rest.
+  // The stage is its own stacking context (z-index:1), so the command palette
+  // (a body-level overlay) still sits above every app window.
+  let zTop = 40;
+
+  // True when the page was opened directly at an /app/<name>/ URL: the kernel
+  // window was minimized at boot and should be restored when the app closes.
+  let bootedIntoApp = false;
+
+  // Drag an app window by its titlebar (app windows are born free-floating, so no
+  // makeFree dance is needed). `onFocus` raises the window as the drag starts.
+  function attachTitlebarDrag(w, onFocus) {
+    const tb = w.querySelector(".titlebar");
+    if (!tb) return;
+    tb.addEventListener("pointerdown", (e) => {
+      if (!desktopMode() || e.button !== 0) return;
+      if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
+      if (onFocus) onFocus();
+      const sx = e.clientX, sy = e.clientY, ox = px(w, "left"), oy = px(w, "top");
+      w.classList.add("dragging");
+      tb.setPointerCapture(e.pointerId);
+      const move = (ev) => { w.style.left = (ox + ev.clientX - sx) + "px"; w.style.top = (oy + ev.clientY - sy) + "px"; clampGeom(w); };
+      const up = () => {
+        tb.releasePointerCapture(e.pointerId);
+        tb.removeEventListener("pointermove", move);
+        tb.removeEventListener("pointerup", up);
+        w.classList.remove("dragging");
+      };
+      tb.addEventListener("pointermove", move);
+      tb.addEventListener("pointerup", up);
+    });
+  }
+
+  // Center a free window in the stage, with a small cascade so stacked windows
+  // don't land exactly on top of each other.
+  function placeCenter(w, offset) {
+    const s = stage.getBoundingClientRect(), r = w.getBoundingClientRect();
+    const d = (offset || 0) * 24;
+    w.style.left = Math.max(8, Math.round((s.width - r.width) / 2) + d) + "px";
+    w.style.top = Math.max(8, Math.round((s.height - r.height) / 2 - 24) + d) + "px";
+    clampGeom(w);
+  }
+
+  // Build a standalone dialog (NOT tracked as an app, doesn't count toward
+  // MAX_APPS). Returns { el, close }. Backs api.createDialog.
+  function createDialog(opts) {
+    opts = opts || {};
+    const el = tmplDialog.content.firstElementChild.cloneNode(true);
+    const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
+    el.style.maxWidth = (opts.maxWidth || 380) + "px";
+    if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
+    const body = el.querySelector(".dialog-body"); if (body) body.textContent = opts.message || "";
+    const actions = el.querySelector(".dialog-actions");
+    const close = () => el.remove();
+    (opts.buttons || [{ label: "OK", primary: true }]).forEach((b) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "dlg-btn" + (b.primary ? " primary" : "");
+      btn.textContent = b.label || "OK";
+      btn.addEventListener("click", () => { if (b.onClick) b.onClick(); if (!b.keepOpen) close(); });
+      actions.appendChild(btn);
+    });
+    const x = el.querySelector("[data-win-close]"); if (x) x.addEventListener("click", close);
+    el.style.left = el.style.top = "-9999px";
+    stage.appendChild(el);
+    el.style.zIndex = (zTop += 1);
+    attachTitlebarDrag(el, () => { el.style.zIndex = (zTop += 1); });
+    placeCenter(el);
+    return { el, close };
+  }
+
+  // The window manager: owns every app window plus the focus / z-order / URL rules.
+  const WM = {
+    apps: [],   // [{ name, url, el, mod, api, kind, focusedAt, _themeCbs }]
+
+    byName(name) { return this.apps.find((r) => r.name === name); },
+
+    // Frontmost visible app (most recently focused), or null.
+    topVisible(except) {
+      return this.apps
+        .filter((r) => r !== except && !r.el.classList.contains("hidden"))
+        .reduce((a, b) => (!a || b.focusedAt > a.focusedAt ? b : a), null);
+    },
+
+    // Raise a window, mark it focused, and point the address bar at it. Focus
+    // changes use replaceState only, so they never add history entries.
+    focus(rec) {
+      if (!rec) return;
+      rec.el.classList.remove("hidden");
+      rec.el.style.zIndex = (zTop += 1);
+      rec.focusedAt = Date.now();
+      this.apps.forEach((r) => r.el.classList.toggle("focused", r === rec));
+      try { history.replaceState({ url: CURRENT.url, app: rec.name }, "", rec.url); } catch (e) {}
+    },
+
+    // Raise the kernel website window above the apps and make it the focused
+    // surface again. The kernel draws from the same `zTop` pool as apps, so
+    // clicking the website brings it over any open app (and clicking an app
+    // brings that back over the website). Desktop only: on mobile an app is
+    // full-screen and the website is reached by closing/minimizing the app.
+    focusWebsite() {
+      if (!desktopMode()) return;
+      win.style.zIndex = (zTop += 1);
+      this.apps.forEach((r) => r.el.classList.remove("focused"));
+      this.restoreWebsiteUrl();
+    },
+
+    // Open (or focus) an app by name. `url` is its /app/<name>/ address.
+    launch(name, url) {
+      url = url || ("/app/" + name + "/");
+      const open = this.byName(name);
+      if (open) { this.focus(open); return; }
+
+      // Enforce the concurrency cap (1 on mobile, MAX_APPS on desktop) with LRU
+      // eviction: opening past the cap closes the least-recently-focused app.
+      const cap = desktopMode() ? MAX_APPS : 1;
+      while (this.apps.length >= cap) {
+        const lru = this.apps.reduce((a, b) => (a.focusedAt <= b.focusedAt ? a : b));
+        this.close(lru);
+      }
+
+      import("/apps/" + name + ".js").then((m) => {
+        const mod = m && m.default;
+        if (!mod || typeof mod.mount !== "function") throw new Error("bad app module: " + name);
+        const rec = buildApp(name, url, mod);
+        try { mod.mount(rec.el, rec.api); } catch (e) { console.error(e); }
+        tick();
+        this.apps.push(rec);
+        placeCenter(rec.el, this.apps.length - 1);
+        this.focus(rec);
+      }).catch((err) => { console.error("Failed to load app '" + name + "':", err); });
+    },
+
+    // Minimize: hide the window; its always-present desktop icon reopens it.
+    minimize(rec) {
+      rec.el.classList.add("hidden");
+      const next = this.topVisible(rec);
+      if (next) this.focus(next); else this.restoreWebsiteUrl();
+    },
+
+    // Close: unmount, drop the DOM and references, then refocus whatever is now
+    // frontmost (another app, or the website).
+    close(rec) {
+      try { rec.mod.unmount && rec.mod.unmount(); } catch (e) { console.error(e); }
+      if (rec._themeCbs) rec._themeCbs.forEach((cb) => appThemeCbs.delete(cb));
+      rec.el.remove();
+      this.apps = this.apps.filter((r) => r !== rec);
+      const top = this.topVisible(null);
+      if (top) this.focus(top);
+
+      // Direct-boot case: the website was only ever the empty app stub, so reveal
+      // it and load the real home page (clean content + URL).
+      else if (bootedIntoApp) {
+        bootedIntoApp = false; showWindow();
+        navigate((FILES[0] && FILES[0].url) || "/", true);
+      } else this.restoreWebsiteUrl();
+    },
+
+    // Point the address bar back at the underlying website page.
+    restoreWebsiteUrl() {
+      try { history.replaceState({ url: CURRENT.url }, "", CURRENT.url); } catch (e) {}
+    },
+  };
+
+  // Clone the right shell, fill the title/size slots, wire chrome, and return the
+  // app record. The whole window element is passed to mount() as `host`, so an
+  // app can target .dialog-body / .dialog-actions / .app-host as it needs.
+  function buildApp(name, url, mod) {
+    const meta = mod.meta || {};
+    const kind = meta.kind === "window" ? "window" : "dialog";
+    const tmpl = kind === "window" ? tmplWindow : tmplDialog;
+    const el = tmpl.content.firstElementChild.cloneNode(true);
+
+    const titleEl = el.querySelector(".app-title");
+    if (titleEl) titleEl.textContent = meta.title || name;
+
+    // Window-kind apps get a default size; dialogs size to their content. Both
+    // honor optional maxWidth/maxHeight ("phone on a desktop").
+    if (kind === "window") {
+      el.style.width = Math.min(meta.maxWidth || 760, 760) + "px";
+      el.style.height = Math.min(meta.maxHeight || 540, 540) + "px";
+    }
+    if (meta.maxWidth) el.style.maxWidth = meta.maxWidth + "px";
+    if (meta.maxHeight) el.style.maxHeight = meta.maxHeight + "px";
+
+    // Start off-screen to avoid a flash at 0,0 before placeCenter runs.
+    el.style.left = el.style.top = "-9999px";
+    stage.appendChild(el);
+
+    const rec = { name, url, el, mod, kind, api: null, focusedAt: Date.now(), _themeCbs: [] };
+    rec.api = makeApi(rec);
+
+    const closeBtn = el.querySelector("[data-win-close]");
+    if (closeBtn) closeBtn.addEventListener("click", () => WM.close(rec));
+    const minBtn = el.querySelector("[data-win-min]");
+    if (minBtn) minBtn.addEventListener("click", () => WM.minimize(rec));
+
+    // Clicking anywhere on the window raises it; the titlebar drags it; window
+    // apps also get the eight resize grips.
+    el.addEventListener("pointerdown", () => WM.focus(rec), true);
+    attachTitlebarDrag(el, () => WM.focus(rec));
+    if (kind === "window") addResizeGrips(el);
+    return rec;
+  }
+
+  // The kernel-provided API handed to each app's mount(). Small on purpose.
+  function makeApi(rec) {
+    return {
+      close: () => WM.close(rec),
+      title: (t) => { const el = rec.el.querySelector(".app-title"); if (el) el.textContent = t; },
+      theme: () => document.documentElement.dataset.theme,
+      onThemeChange: (cb) => { if (typeof cb === "function") { appThemeCbs.add(cb); rec._themeCbs.push(cb); } },
+      createDialog: (opts) => createDialog(opts),
+    };
+  }
+
+  // The kernel website window joins the same z-order as the apps: a pointerdown
+  // anywhere on it raises it above any open app window (desktop only).
+  if (win) win.addEventListener("pointerdown", () => WM.focusWebsite(), true);
+
+  // Register the per-app desktop icons (always visible) to launch their apps.
+  if (DESK) document.querySelectorAll("#desktop .desk-icon[data-app]").forEach((el) => {
+    const name = el.dataset.app, url = el.dataset.appUrl || ("/app/" + name + "/");
+    DESK.register(el, { onOpen: () => WM.launch(name, url) });
+  });
+
   /* ---------- boot ---------- */
 
   // Apply the stored (or default) theme and wire up the tree.
@@ -1033,4 +1291,9 @@
 
   // Start collapsed when the sidebar is in overlay mode.
   if (isOverlay() && sidebarEl) { sidebarEl.classList.add("collapsed"); wasOverlay = true; }
+
+  // Direct /app/<name>/ load: minimize the website window behind and open the
+  // app over it ("website closes, app opens").
+  const bootApp = document.body.dataset.app;
+  if (bootApp) { bootedIntoApp = true; hideWindow(false); WM.launch(bootApp, location.href); }
 })();
