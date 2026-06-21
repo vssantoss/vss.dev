@@ -1,6 +1,5 @@
 +++
 title = "Victor Santos"
-description = "Full-stack developer building for the web. A personal site you browse like a code editor: posts, tips, and an honest career changelog."
 [extra]
 filename = "README.md"
 order = 1

@@ -1,7 +1,7 @@
 # Zola configuration: https://www.getzola.org/documentation/getting-started/configuration/
 base_url = "https://vss.dev"
 title = "Victor Santos"
-description = "Victor Santos, full-stack developer. Posts, tips, and a career changelog, browsable as a code editor."
+description = "A public workspace and personal knowledge base by Victor Santos, featuring software projects, technical posts, practical guides, and useful resources."
 default_language = "en"
 
 # SEO essentials Zola gives us for free
@@ -11,6 +11,10 @@ feed_filenames = ["rss.xml"]
 
 compile_sass = false
 build_search_index = false
+
+# README.md files are repo documentation (e.g. content/drafts/README.md), not
+# pages. Ignore them so Zola never tries to render them as content.
+ignored_content = ["**/README.md"]
 
 taxonomies = [{ name = "tags", feed = true }]
 

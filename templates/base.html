@@ -43,8 +43,8 @@
 {% if page or section %}{% set parts = relpath | split(pat="/") %}{% if parts | length > 1 %}{% set crumb = parts[0] ~ "/" ~ fname %}{% endif %}{% endif %}
 {% if term %}{% set crumb = "tags/" ~ term.name %}{% endif %}
 {% if terms %}{% set crumb = "tags" %}{% endif %}
-{% set page_title = title ~ " · Victor Santos" %}
-{% if is_home %}{% set page_title = "Victor Santos, full-stack developer" %}{% endif %}
+{% set page_title = "vss.dev · " ~ title %}
+{% if is_home %}{% set page_title = "vss.dev · Victor Santos' Projects & Knowledge Base" %}{% endif %}
 
 <title>{{ page_title }}</title>
 <meta name="description" content="{{ desc }}">
