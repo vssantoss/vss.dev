@@ -1,6 +1,7 @@
 +++
 title = "Others"
 date = 2026-06-20
+weight = 3
 description = "Useful device maintenance, repair, trade-in, and battery resources."
 authors = ["Victor Santos"]
 [taxonomies]

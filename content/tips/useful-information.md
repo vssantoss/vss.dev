@@ -1,6 +1,7 @@
 +++
 title = "Useful information"
 date = 2026-06-20
+weight = 4
 description = "Resources for recycling batteries and responsibly disposing of unwanted items."
 authors = ["Victor Santos"]
 [taxonomies]

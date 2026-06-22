@@ -1,7 +1,7 @@
 +++
 title = "Tips"
 description = "Short, practical developer tips from Victor Santos."
-sort_by = "date"
+sort_by = "weight"
 weight = 2
 [extra]
 filename = "tips"

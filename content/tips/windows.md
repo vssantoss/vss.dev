@@ -1,6 +1,7 @@
 +++
 title = "Windows"
 date = 2026-06-20
+weight = 1
 description = "Useful Windows applications, utilities, and troubleshooting notes."
 authors = ["Victor Santos"]
 [taxonomies]

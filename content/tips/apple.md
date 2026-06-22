@@ -1,6 +1,7 @@
 +++
 title = "Apple"
 date = 2026-06-20
+weight = 2
 description = "Useful applications, utilities, and resources for Apple computers."
 authors = ["Victor Santos"]
 [taxonomies]
