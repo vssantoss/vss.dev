@@ -29,6 +29,14 @@ function openFile(path) {
 }
 ```
 
+## How it's built: plain HTML first, then progressive enhancement
+
+Every page is served as plain, complete HTML first. The full article is right there in the source before a single line of JavaScript runs, which is what mainly keeps search engines happy, but it also means the site works in browsers with JavaScript disabled. The content never depends on the script.
+
+Then progressive enhancement brings the website to life on top of that static base: the editor chrome, the file tree, tabs, the command palette, in-place navigation, and more. The script is purely additive. If it never loads, you still get the whole site.
+
+There's a lot of cool and advanced stuff coming to this home. Really advanced stuff. The rule is that none of it gets in the way of the search engines: the indexable layer stays plain HTML, and everything fancy layers on top without touching it. The goal is to keep this site as close as possible to a perfect 100 SEO score, no matter how much I build on it.
+
 ## The one detail I care about
 
 The editor chrome is monospaced. That's the costume. But the moment you read a post, the words are set in a serif. Code is for machines; writing is for people. Letting those two voices sit side by side is the whole idea.
