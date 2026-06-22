@@ -12,15 +12,11 @@ icon = "md"
 
 # Escaping the tutorial trap
 
-For a while I measured progress in courses finished. Neat checkmarks,
-zero scars. The problem with tutorials is they remove the one thing that
-actually teaches you: *getting stuck*.
+For a while I measured progress in courses finished. Neat checkmarks, zero scars. The problem with tutorials is they remove the one thing that actually teaches you: *getting stuck*.
 
 ## The shift
 
-I started a rule: for every hour of watching, an hour of building
-something that wasn't in the video. Break it, fix it, look it up only
-after I'd been confused on purpose.
+I started a rule: for every hour of watching, an hour of building something that wasn't in the video. Break it, fix it, look it up only after I'd been confused on purpose.
 
 > You don't learn to debug by reading about debugging.
 

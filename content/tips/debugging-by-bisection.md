@@ -12,15 +12,13 @@ icon = "md"
 
 # Debugging by bisection
 
-When something breaks and you have no idea where, don't read every line.
-**Cut the problem in half.**
+When something breaks and you have no idea where, don't read every line. **Cut the problem in half.**
 
 - Comment out half the code. Does the bug survive? Now you know which half.
 - Repeat. Each step throws away 50% of the search space.
 - A bug hiding in 1,000 lines is about 10 halvings away from caught.
 
-Same trick, different name. It lives in `git bisect`, which binary-searches
-your commit history for the one that broke things:
+Same trick, different name. It lives in `git bisect`, which binary-searches your commit history for the one that broke things:
 
 ```sh
 git bisect start

@@ -4,7 +4,7 @@ date = 2026-06-21
 description = "Picking a meta description under 160 characters took hundreds of AI suggestions, a four-model bake-off, and 30 long seconds of deciding between two finalists."
 authors = ["Victor Santos"]
 [taxonomies]
-tags = ["meta", "decisions"]
+tags = ["vss.dev", "meta", "decisions"]
 [extra]
 filename = "choosing-the-site-description.md"
 icon = "md"

@@ -4,7 +4,7 @@ date = 2026-06-20
 description = "Why picking a sub-60-character <title> for vss.dev took me longer than building half the site."
 authors = ["Victor Santos"]
 [taxonomies]
-tags = ["meta", "decisions"]
+tags = ["vss.dev", "meta", "decisions"]
 [extra]
 filename = "choosing-the-page-title.md"
 icon = "md"
