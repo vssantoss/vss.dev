@@ -30,14 +30,15 @@
   {% set lim = s.extra.sidebar_limit | default(value=0) %}
   {% if lim > 0 %}{% set shown = s.pages | slice(end=lim) %}{% else %}{% set shown = s.pages %}{% endif %}
 
-  {# Folder row. The collapsed/open state is controlled by editor.js. #}
-  <div class="node folder collapsed" data-folder="{{ s.extra.filename }}" role="button" tabindex="0" aria-expanded="false">
+  {# Folder row. Rendered expanded so the links work without JS (and for crawlers);
+     editor.js collapses it on load, and the html.js CSS rule avoids a flash. #}
+  <div class="node folder" data-folder="{{ s.extra.filename }}" role="button" tabindex="0" aria-expanded="true">
     <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
     <span class="ix"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v10H3z"/></svg></span>{{ s.extra.filename }}/
   </div>
 
   {# Folder children: the section index first, then the section pages. #}
-  <div class="children closed">
+  <div class="children">
     <a class="node file indent" href="{{ s.permalink | safe }}" data-name="_index.md">
       <span class="chev"></span><span class="fileicon">MD</span><span>_index.md</span>
     </a>

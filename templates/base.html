@@ -65,8 +65,8 @@
 <meta name="twitter:description" content="{{ desc }}">
 <meta name="twitter:image" content="{{ get_url(path="img/og.png") | safe }}">
 
-{# ---- no-FOUC theme (set before stylesheet paints) ---- #}
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('vss-theme')||'ink';}catch(e){document.documentElement.dataset.theme='ink';}</script>
+{# ---- no-FOUC theme + JS flag (set before stylesheet paints) ---- #}
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('vss-theme')||'ink';}catch(e){document.documentElement.dataset.theme='ink';}document.documentElement.classList.add('js');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
