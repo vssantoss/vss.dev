@@ -342,11 +342,11 @@
     if ($("#st-words")) $("#st-words").textContent = words + " words";
   }
 
-  // Update the HH:MM clock in the status bar.
+  // Update the HH:MM clock in the kernel status bar and every open app window.
   function tick() {
     const d = new Date();
-    if ($("#st-clock")) $("#st-clock").textContent =
-      String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const t = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    document.querySelectorAll("#st-clock, .app-clock").forEach((el) => { el.textContent = t; });
   }
 
   /* ---------- decorate external links in prose ---------- */
@@ -518,10 +518,23 @@
   // Set an attribute on a head element if it exists.
   function setMeta(sel, attr, val) { const el = $(sel); if (el) el.setAttribute(attr, val); }
 
+  // The mini-app name for an /app/<name>/ URL, or null for any other URL.
+  function appNameForUrl(u) {
+    const m = new URL(u, location.href).pathname.match(/^\/app\/([^\/]+)\/?$/);
+    return m ? m[1] : null;
+  }
+
   // Fetch a page and swap it in without a full reload; fall back to a real
   // navigation on any error. `push` controls whether history gets a new entry.
   function navigate(url, push) {
     const abs = new URL(url, location.href).href;
+
+    // An /app/<name>/ URL is a mini-app, not a content page: launch it over the
+    // website rather than fetching its boot stub as page content. This covers
+    // popstate (Back/Forward landing on an app URL, e.g. the entry the page was
+    // opened at) as well as any programmatic navigate to an app URL.
+    const appName = appNameForUrl(abs);
+    if (appName) { closePalette(); WM.launch(appName, abs); return; }
 
     // Already here: just clean up overlays.
     if (norm(abs) === getCur()) { if (welcomeActive) reopenCurrent(); closePalette(); return; }
@@ -585,12 +598,20 @@
     if (url.origin !== location.origin) return;
     if (/\.(xml|css|js|png|jpe?g|gif|svg|ico|txt|pdf)$/i.test(url.pathname)) return;
 
+    // A /app/<name>/ link launches the mini-app over the website instead of
+    // swapping page content.
+    const appName = appNameForUrl(url);
+    if (appName) { e.preventDefault(); WM.launch(appName, url.href); return; }
+
     // Same-origin page: intercept and navigate via SPA.
     e.preventDefault();
     navigate(url.href, true);
   });
 
   /* ---------- theme ---------- */
+
+  // Open mini-apps that asked to be told when the theme flips (api.onThemeChange).
+  const appThemeCbs = new Set();
 
   // Apply a theme ("ink" / "paper"), persist it, and swap the toggle's icon.
   function setTheme(t) {
@@ -599,6 +620,7 @@
     const moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
     const sun = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>';
     if ($("#theme-icon")) $("#theme-icon").innerHTML = t === "ink" ? moon : sun;
+    appThemeCbs.forEach((cb) => { try { cb(t); } catch (e) {} });
   }
   if ($("#btn-theme")) $("#btn-theme").addEventListener("click", () =>
     setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
@@ -639,7 +661,15 @@
 
   const win = $(".window"), stage = $(".stage"), titlebar = $(".titlebar");
   const launcher = $("#icon-window");
-  const btnClose = $("#win-close"), btnMin = $("#win-min"), btnMax = $("#win-max");
+
+  // The kernel window's maximize button (only the website maximizes). Its close /
+  // minimize / maximize controls are wired uniformly through wireWindowChrome once
+  // the website joins the window manager as a first-class record (see below).
+  const btnMax = $(".window > .titlebar [data-win-max]");
+
+  // The website's WM record, assigned once the window manager exists. Declared up
+  // here so earlier closures (e.g. the launcher's onOpen) can reference it.
+  let websiteRec = null;
 
   // Window management is desktop-only; below this width the window is full-screen.
   const mqMobile = window.matchMedia("(max-width:840px)");
@@ -648,51 +678,38 @@
   // Read a pixel style value as a number.
   const px = (el, p) => parseFloat(el.style[p]) || 0;
 
-  // `isFree` = the window has been dragged/resized off its default centered slot.
-  let isFree = false, savedGeom = null;
+  // Geometry the maximize button stashes so "restore" can return a free window.
+  let savedGeom = null;
 
-  // Promote the window to free-floating by freezing its current geometry inline.
-  function makeFree() {
-    if (isFree || !win || !stage) return;
-    const r = win.getBoundingClientRect(), s = stage.getBoundingClientRect();
-    win.style.left = (r.left - s.left) + "px";
-    win.style.top = (r.top - s.top) + "px";
-    win.style.width = r.width + "px";
-    win.style.height = r.height + "px";
-    win.classList.add("free");
-    isFree = true;
+  // Promote a window to free-floating by freezing its current geometry inline.
+  // Defaults to the kernel window; app windows are born free (the `.free` class),
+  // so this is a no-op for them. The `.free` class is the single source of truth
+  // for "has been detached from its default slot" across every window.
+  function makeFree(w) {
+    w = w || win;
+    if (!w || !stage || w.classList.contains("free")) return;
+    const r = w.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    w.style.left = (r.left - s.left) + "px";
+    w.style.top = (r.top - s.top) + "px";
+    w.style.width = r.width + "px";
+    w.style.height = r.height + "px";
+    w.classList.add("free");
   }
 
-  // Keep a free window's top-left within the stage bounds.
-  function clampGeom() {
-    if (!win || !win.classList.contains("free")) return;
+  // Keep a free window's top-left within the stage bounds (any window).
+  function clampGeom(w) {
+    w = w || win;
+    if (!w || !w.classList.contains("free")) return;
     const s = stage.getBoundingClientRect();
-    const w = win.offsetWidth, h = win.offsetHeight;
-    const minX = Math.min(0, s.width - w), maxX = Math.max(0, s.width - w);
-    const minY = Math.min(0, s.height - h), maxY = Math.max(0, s.height - h);
-    win.style.left = Math.min(Math.max(px(win, "left"), minX), maxX) + "px";
-    win.style.top = Math.min(Math.max(px(win, "top"), minY), maxY) + "px";
+    const ww = w.offsetWidth, hh = w.offsetHeight;
+    const minX = Math.min(0, s.width - ww), maxX = Math.max(0, s.width - ww);
+    const minY = Math.min(0, s.height - hh), maxY = Math.max(0, s.height - hh);
+    w.style.left = Math.min(Math.max(px(w, "left"), minX), maxX) + "px";
+    w.style.top = Math.min(Math.max(px(w, "top"), minY), maxY) + "px";
   }
 
-  // Drag by the titlebar (but not its buttons).
-  if (titlebar) titlebar.addEventListener("pointerdown", (e) => {
-    if (!desktopMode() || e.button !== 0) return;
-    if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
-    if (win.classList.contains("maximized")) return;
-    makeFree();
-    const sx = e.clientX, sy = e.clientY, ox = px(win, "left"), oy = px(win, "top");
-    win.classList.add("dragging");
-    titlebar.setPointerCapture(e.pointerId);
-    const move = (ev) => { win.style.left = (ox + ev.clientX - sx) + "px"; win.style.top = (oy + ev.clientY - sy) + "px"; clampGeom(); };
-    const up = () => {
-      titlebar.releasePointerCapture(e.pointerId);
-      titlebar.removeEventListener("pointermove", move);
-      titlebar.removeEventListener("pointerup", up);
-      win.classList.remove("dragging");
-    };
-    titlebar.addEventListener("pointermove", move);
-    titlebar.addEventListener("pointerup", up);
-  });
+  // Titlebar drag is wired uniformly for every window (kernel included) by
+  // attachTitlebarDrag, once the WM and the website record exist (see below).
 
   // Double-clicking the titlebar maximizes / restores.
   if (titlebar) titlebar.addEventListener("dblclick", (e) => {
@@ -701,55 +718,61 @@
   });
 
   // 8-direction resize from a grip; `edge` is some combination of n/s/e/w.
-  function startResize(e, edge) {
-    if (!desktopMode() || e.button !== 0 || win.classList.contains("maximized")) return;
+  // Operates on the given window (defaults to the kernel window).
+  function startResize(e, edge, w) {
+    w = w || win;
+    if (!desktopMode() || e.button !== 0 || w.classList.contains("maximized")) return;
     e.preventDefault();
-    makeFree();
+    makeFree(w);
     const s = stage.getBoundingClientRect();
     const sx = e.clientX, sy = e.clientY;
-    const x0 = px(win, "left"), y0 = px(win, "top"), w0 = win.offsetWidth, h0 = win.offsetHeight;
-    const minW = 360, minH = 420;
-    win.classList.add("dragging");
+    const x0 = px(w, "left"), y0 = px(w, "top"), w0 = w.offsetWidth, h0 = w.offsetHeight;
+    const cs = getComputedStyle(w);
+    const minW = parseFloat(cs.minWidth) || 320, minH = parseFloat(cs.minHeight) || 220;
+    w.classList.add("dragging");
     e.target.setPointerCapture(e.pointerId);
     const move = (ev) => {
       const dx = ev.clientX - sx, dy = ev.clientY - sy;
-      let left = x0, top = y0, w = w0, h = h0;
+      let left = x0, top = y0, ww = w0, hh = h0;
 
       // Each edge in `edge` moves the matching side; west/north also shift the origin.
-      if (edge.includes("e")) w = w0 + dx;
-      if (edge.includes("s")) h = h0 + dy;
-      if (edge.includes("w")) { w = w0 - dx; left = x0 + dx; }
-      if (edge.includes("n")) { h = h0 - dy; top = y0 + dy; }
+      if (edge.includes("e")) ww = w0 + dx;
+      if (edge.includes("s")) hh = h0 + dy;
+      if (edge.includes("w")) { ww = w0 - dx; left = x0 + dx; }
+      if (edge.includes("n")) { hh = h0 - dy; top = y0 + dy; }
 
       // Enforce the minimum size without letting a west/north drag overshoot.
-      if (w < minW) { if (edge.includes("w")) left -= minW - w; w = minW; }
-      if (h < minH) { if (edge.includes("n")) top -= minH - h; h = minH; }
+      if (ww < minW) { if (edge.includes("w")) left -= minW - ww; ww = minW; }
+      if (hh < minH) { if (edge.includes("n")) top -= minH - hh; hh = minH; }
 
       // Clamp to the stage edges.
-      if (left < 0) { if (edge.includes("w")) w += left; left = 0; }
-      if (top < 0) { if (edge.includes("n")) h += top; top = 0; }
-      if (left + w > s.width) w = s.width - left;
-      if (top + h > s.height) h = s.height - top;
-      win.style.left = left + "px"; win.style.top = top + "px";
-      win.style.width = w + "px"; win.style.height = h + "px";
+      if (left < 0) { if (edge.includes("w")) ww += left; left = 0; }
+      if (top < 0) { if (edge.includes("n")) hh += top; top = 0; }
+      if (left + ww > s.width) ww = s.width - left;
+      if (top + hh > s.height) hh = s.height - top;
+      w.style.left = left + "px"; w.style.top = top + "px";
+      w.style.width = ww + "px"; w.style.height = hh + "px";
     };
     const up = () => {
       e.target.releasePointerCapture(e.pointerId);
       e.target.removeEventListener("pointermove", move);
       e.target.removeEventListener("pointerup", up);
-      win.classList.remove("dragging");
+      w.classList.remove("dragging");
     };
     e.target.addEventListener("pointermove", move);
     e.target.addEventListener("pointerup", up);
   }
 
-  // Create the eight resize grips and wire each to startResize.
-  if (win) ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((edge) => {
-    const h = document.createElement("div");
-    h.className = "win-handle " + edge;
-    h.addEventListener("pointerdown", (e) => startResize(e, edge));
-    win.appendChild(h);
-  });
+  // Create the eight resize grips on a window and wire each to startResize.
+  function addResizeGrips(w) {
+    ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach((edge) => {
+      const h = document.createElement("div");
+      h.className = "win-handle " + edge;
+      h.addEventListener("pointerdown", (e) => startResize(e, edge, w));
+      w.appendChild(h);
+    });
+  }
+  if (win) addResizeGrips(win);
 
   // Maximize the window, or restore it to its saved free geometry.
   function toggleMax() {
@@ -764,7 +787,7 @@
 
       // Remember a free window's geometry so restore can return to it, then let
       // the fixed inset:0 maximized rule take over.
-      savedGeom = isFree ? { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height } : null;
+      savedGeom = win.classList.contains("free") ? { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height } : null;
       win.style.left = win.style.top = win.style.width = win.style.height = "";
       win.classList.add("maximized");
       btnMax && btnMax.setAttribute("aria-label", "Restore");
@@ -774,26 +797,25 @@
   // True once the window was closed (vs minimized), so reopening starts fresh.
   let closedReset = false;
 
-  // Hide the window and reveal its desktop launcher. `reset` (close) also drops
-  // any free/maximized geometry so a reopen looks like a first visit.
+  // Hide the window. Its desktop launcher is always visible (like the app
+  // icons), so this just minimizes. `reset` (close) also drops any free/maximized
+  // geometry so a reopen looks like a first visit.
   function hideWindow(reset) {
     if (!win) return;
     if (reset) {
       win.classList.remove("free", "maximized");
-      isFree = false; savedGeom = null;
+      savedGeom = null;
       win.style.left = win.style.top = win.style.width = win.style.height = "";
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
       closedReset = true;
     }
     win.classList.add("hidden");
-    if (launcher) launcher.hidden = false;
   }
 
   // Re-show the window; if it had been closed, reset state and replay the rise.
   function showWindow() {
     if (!win) return;
     win.classList.remove("hidden");
-    if (launcher) launcher.hidden = true;
     if (closedReset) { closedReset = false; resetToFirstVisit(); replayRise(); }
   }
 
@@ -814,18 +836,16 @@
     if (!win) return;
     win.style.animation = "none"; void win.offsetHeight; win.style.animation = "";
   }
-  if (btnMax) btnMax.addEventListener("click", toggleMax);
-  if (btnMin) btnMin.addEventListener("click", () => hideWindow(false));
-  if (btnClose) btnClose.addEventListener("click", () => hideWindow(true));
+  // The kernel window's close / minimize / maximize controls are wired through the
+  // shared wireWindowChrome path once the website record exists (see below).
 
-  // Crossing into mobile resets to the full-screen layout and never strands a
-  // hidden window.
+  // Crossing into mobile drops desktop-only floating/maximized geometry and
+  // restores the full-screen layout. A minimized/closed window stays that way.
   mqMobile.addEventListener("change", (e) => {
     if (e.matches) {
-      win && win.classList.remove("free", "maximized", "hidden");
-      isFree = false; savedGeom = null;
+      win && win.classList.remove("free", "maximized");
+      savedGeom = null;
       if (win) win.style.left = win.style.top = win.style.width = win.style.height = "";
-      if (launcher) launcher.hidden = true;
       btnMax && btnMax.setAttribute("aria-label", "Maximize");
     } else { clampGeom(); }
   });
@@ -913,10 +933,12 @@
       icon.col = cell.c; icon.row = cell.r; occ.set(key(cell.c, cell.r), id);
       icons.push(icon); place(icon);
 
-      // `moved` distinguishes a drag from a click so open doesn't fire on drop.
+      // `moved` distinguishes a drag from a tap so open doesn't fire on drop.
+      // The icon behaves the same at every screen size: always draggable, one
+      // tap to open (so it is NOT gated on desktopMode).
       let moved = false;
       el.addEventListener("pointerdown", (e) => {
-        if (!desktopMode() || e.button !== 0) return;
+        if (e.button !== 0) return;
         moved = false;
         const sx = e.clientX, sy = e.clientY, ox = parseFloat(el.style.left) || 0, oy = parseFloat(el.style.top) || 0;
         el.setPointerCapture(e.pointerId);
@@ -933,19 +955,19 @@
           el.removeEventListener("pointermove", move);
           el.removeEventListener("pointerup", up);
 
-          // On drop, snap to the nearest cell and persist.
+          // A drag snaps to the nearest cell and persists; a tap (no movement)
+          // opens the window. Identical on desktop and mobile.
           if (moved) {
             el.classList.remove("dragging");
             const cell = pxToCell(parseFloat(el.style.left) || 0, parseFloat(el.style.top) || 0);
             assign(icon, cell.c, cell.r); save();
-          }
+          } else if (opts.onOpen) opts.onOpen();
         };
         el.addEventListener("pointermove", move);
         el.addEventListener("pointerup", up);
       });
 
-      // Open on double-click (unless it was a drag) or keyboard activation.
-      el.addEventListener("dblclick", () => { if (!moved && opts.onOpen) opts.onOpen(); });
+      // Keyboard activation opens the window (dragging is pointer-only).
       el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (opts.onOpen) opts.onOpen(); } });
       return icon;
     }
@@ -963,8 +985,13 @@
     return { register };
   })();
 
-  // Register the window's desktop launcher icon (label from the titlebar).
-  if (DESK && launcher) DESK.register(launcher, { titleEl: $(".titlebar .who"), onOpen: showWindow });
+  // Register the window's launcher icon (label from the titlebar). It is always
+  // visible, just like the app icons: tapping it restores the window if it was
+  // minimized, otherwise raises it above any open app (focus).
+  if (DESK && launcher) DESK.register(launcher, {
+    titleEl: $(".titlebar .who"),
+    onOpen: () => { showWindow(); if (websiteRec) WM.focus(websiteRec); },
+  });
 
   /* ---------- command palette ---------- */
 
@@ -1017,6 +1044,302 @@
     }
   });
 
+  /* ---------- mini-app window manager ----------
+
+     App windows reuse the kernel's window structure and the generic geometry
+     helpers above (makeFree/clampGeom/startResize). They are created at runtime
+     from the <template>s in base.html, loaded on demand, and torn down on close.
+  */
+
+  // Up to MAX_APPS app windows on desktop (a single knob); mobile shows one at a
+  // time (close/minimize one to open another).
+  const MAX_APPS = 3;
+
+  const tmplWindow = $("#tmpl-window"), tmplDialog = $("#tmpl-dialog");
+
+  // Z-index bands inside the stage (its own stacking context, z-index:1, so the
+  // command palette and other body-level overlays still sit above everything
+  // here). Windows are re-packed on focus into a tiny fixed range starting at
+  // Z_WINDOWS (see WM.restack), so there's no ever-growing counter; dialogs float
+  // above every window at Z_DIALOGS, ordered among themselves by DOM order.
+  const Z_WINDOWS = 40, Z_DIALOGS = 200;
+
+  // True when the page was opened directly at an /app/<name>/ URL: the kernel
+  // window was minimized at boot and should be restored when the app closes.
+  let bootedIntoApp = false;
+
+  // Drag any window by its titlebar. `onFocus` raises the window as the drag
+  // starts. makeFree promotes the kernel window off its default slot on first
+  // drag; app windows are born `.free`, so it's a no-op for them. A maximized
+  // window doesn't drag.
+  function attachTitlebarDrag(w, onFocus) {
+    const tb = w.querySelector(".titlebar");
+    if (!tb) return;
+    tb.addEventListener("pointerdown", (e) => {
+      if (!desktopMode() || e.button !== 0) return;
+      if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
+      if (w.classList.contains("maximized")) return;
+      if (onFocus) onFocus();
+      makeFree(w);
+      const sx = e.clientX, sy = e.clientY, ox = px(w, "left"), oy = px(w, "top");
+      w.classList.add("dragging");
+      tb.setPointerCapture(e.pointerId);
+      const move = (ev) => { w.style.left = (ox + ev.clientX - sx) + "px"; w.style.top = (oy + ev.clientY - sy) + "px"; clampGeom(w); };
+      const up = () => {
+        tb.releasePointerCapture(e.pointerId);
+        tb.removeEventListener("pointermove", move);
+        tb.removeEventListener("pointerup", up);
+        w.classList.remove("dragging");
+      };
+      tb.addEventListener("pointermove", move);
+      tb.addEventListener("pointerup", up);
+    });
+  }
+
+  // Center a free window in the stage, with a small cascade so stacked windows
+  // don't land exactly on top of each other.
+  function placeCenter(w, offset) {
+    const s = stage.getBoundingClientRect(), r = w.getBoundingClientRect();
+    const d = (offset || 0) * 24;
+    w.style.left = Math.max(8, Math.round((s.width - r.width) / 2) + d) + "px";
+    w.style.top = Math.max(8, Math.round((s.height - r.height) / 2 - 24) + d) + "px";
+    clampGeom(w);
+  }
+
+  // Clone a window/dialog template, fill its title, apply optional size caps,
+  // park it off-screen (so placeCenter can measure it without a flash at 0,0),
+  // and append it to the stage. The caller wires chrome/drag and centers it.
+  function makeWindowEl(tmpl, opts) {
+    const el = tmpl.content.firstElementChild.cloneNode(true);
+    const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
+    if (opts.maxWidth) el.style.maxWidth = opts.maxWidth + "px";
+    if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
+    el.style.left = el.style.top = "-9999px";
+    stage.appendChild(el);
+    return el;
+  }
+
+  // Build a standalone dialog (NOT tracked as an app, doesn't count toward
+  // MAX_APPS). Returns { el, close }. Backs api.createDialog.
+  function createDialog(opts) {
+    opts = opts || {};
+    const el = makeWindowEl(tmplDialog, { title: opts.title, maxWidth: opts.maxWidth || 380, maxHeight: opts.maxHeight });
+    const body = el.querySelector(".dialog-body"); if (body) body.textContent = opts.message || "";
+    const actions = el.querySelector(".dialog-actions");
+    const close = () => el.remove();
+    (opts.buttons || [{ label: "OK", primary: true }]).forEach((b) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "dlg-btn" + (b.primary ? " primary" : "");
+      btn.textContent = b.label || "OK";
+      btn.addEventListener("click", () => { if (b.onClick) b.onClick(); if (!b.keepOpen) close(); });
+      actions.appendChild(btn);
+    });
+    const x = el.querySelector("[data-win-close]"); if (x) x.addEventListener("click", close);
+    el.style.zIndex = Z_DIALOGS;
+    // Dialogs share one z band; raising one to the front is just moving it to the
+    // end of the stage so it paints over its equal-z siblings.
+    attachTitlebarDrag(el, () => { stage.appendChild(el); });
+    placeCenter(el);
+    return { el, close };
+  }
+
+  // Wire a window record's traffic-light controls to the WM. Every window (kernel
+  // and apps) carries the same [data-win-close/min/max] buttons; this is the one
+  // path that connects them. A window without a given button simply skips it.
+  function wireWindowChrome(rec) {
+    const el = rec.el;
+    const c = el.querySelector("[data-win-close]");
+    if (c) c.addEventListener("click", () => WM.close(rec));
+    const m = el.querySelector("[data-win-min]");
+    if (m) m.addEventListener("click", () => WM.minimize(rec));
+    const x = el.querySelector("[data-win-max]");
+    if (x) x.addEventListener("click", () => WM.maximize(rec));
+  }
+
+  // The window manager: owns every window (the permanent kernel record plus each
+  // app window) under one focus / z-order / URL / lifecycle policy.
+  const WM = {
+    // Every tracked window, including the website. App records carry
+    // { name, url, el, mod, api, kind, focusedAt, _themeCbs, closable }; the
+    // website record carries { name, kind:"website", el, closable:false, url(),
+    // onClose, focusedAt }.
+    windows: [],
+
+    register(rec) { this.windows.push(rec); return rec; },
+
+    // The app windows only (everything that isn't the permanent kernel record).
+    apps() { return this.windows.filter((r) => r.kind !== "website"); },
+
+    byName(name) { return this.windows.find((r) => r.name === name); },
+
+    // Frontmost visible window (most recently focused), or null. Includes the
+    // website, so closing the last app falls back to the website if it's showing.
+    topVisible(except) {
+      return this.windows
+        .filter((r) => r !== except && !r.el.classList.contains("hidden"))
+        .reduce((a, b) => (!a || b.focusedAt > a.focusedAt ? b : a), null);
+    },
+
+    // Re-pack every window's z-index by recency (oldest at Z_WINDOWS, frontmost on
+    // top). The kernel and the apps share one band, so focusing the website brings
+    // it over any open app and vice-versa. There are only a handful of windows, so
+    // this stays a tiny bounded range instead of an ever-climbing counter.
+    restack() {
+      this.windows.slice()
+        .sort((a, b) => a.focusedAt - b.focusedAt)
+        .forEach((r, i) => { r.el.style.zIndex = Z_WINDOWS + i; });
+    },
+
+    // Raise a window, mark it focused, and point the address bar at it. Focus
+    // changes use replaceState only, so they never add history entries. `url` may
+    // be a string or a getter.
+    focus(rec) {
+      if (!rec) return;
+      // Already frontmost and visible: nothing to do. Skips a redundant restack
+      // and replaceState when a single titlebar press fires both the capture-phase
+      // focus listener and the drag's onFocus. Exactly one window carries
+      // ".focused" (the last one focused), so this is an O(1) frontmost check.
+      if (rec.el.classList.contains("focused") && !rec.el.classList.contains("hidden")) return;
+      rec.el.classList.remove("hidden");
+      rec.focusedAt = Date.now();
+      this.restack();
+      this.windows.forEach((r) => r.el.classList.toggle("focused", r === rec));
+      const u = typeof rec.url === "function" ? rec.url() : rec.url;
+      try { history.replaceState({ url: CURRENT.url, app: rec.name }, "", u); } catch (e) {}
+    },
+
+    // Open (or focus) an app by name. `url` is its /app/<name>/ address.
+    launch(name, url) {
+      url = url || ("/app/" + name + "/");
+      const open = this.byName(name);
+      if (open) { this.focus(open); return; }
+
+      // Enforce the concurrency cap (1 on mobile, MAX_APPS on desktop) with LRU
+      // eviction: opening past the cap closes the least-recently-focused app.
+      const cap = desktopMode() ? MAX_APPS : 1;
+      let live = this.apps();
+      while (live.length >= cap) {
+        this.close(live.reduce((a, b) => (a.focusedAt <= b.focusedAt ? a : b)));
+        live = this.apps();
+      }
+
+      import("/apps/" + name + ".js").then((m) => {
+        const mod = m && m.default;
+        if (!mod || typeof mod.mount !== "function") throw new Error("bad app module: " + name);
+        const rec = buildApp(name, url, mod);
+        try { mod.mount(rec.el, rec.api); } catch (e) { console.error(e); }
+        tick();
+        this.register(rec);
+        placeCenter(rec.el, this.apps().length - 1);
+        this.focus(rec);
+      }).catch((err) => { console.error("Failed to load app '" + name + "':", err); });
+    },
+
+    // Minimize: hide the window; its always-present desktop icon reopens it. Then
+    // focus whatever is now frontmost, or restore the website URL if nothing is.
+    minimize(rec) {
+      rec.el.classList.add("hidden");
+      const next = this.topVisible(rec);
+      if (next) this.focus(next); else this.restoreWebsiteUrl();
+    },
+
+    // Maximize/restore. Only the website has a maximize control today; toggleMax
+    // operates on the kernel window.
+    maximize(rec) { toggleMax(); },
+
+    // Close. A permanent window (the website, closable:false) isn't destroyed: its
+    // onClose resets it to a fresh first visit, then focus falls to whatever else
+    // is frontmost. App windows are unmounted, dropped from the DOM, and forgotten.
+    close(rec) {
+      if (rec.closable === false) {
+        if (rec.onClose) rec.onClose();
+        const next = this.topVisible(rec);
+        if (next) this.focus(next);
+        return;
+      }
+      try { rec.mod.unmount && rec.mod.unmount(); } catch (e) { console.error(e); }
+      if (rec._themeCbs) rec._themeCbs.forEach((cb) => appThemeCbs.delete(cb));
+      rec.el.remove();
+      this.windows = this.windows.filter((r) => r !== rec);
+      const top = this.topVisible(null);
+      if (top) this.focus(top);
+
+      // Direct-boot case: the website was only ever the empty app stub, so reveal
+      // it and load the real home page (clean content + URL).
+      else if (bootedIntoApp) {
+        bootedIntoApp = false; showWindow();
+        navigate((FILES[0] && FILES[0].url) || "/", true);
+      } else this.restoreWebsiteUrl();
+    },
+
+    // Point the address bar back at the underlying website page.
+    restoreWebsiteUrl() {
+      try { history.replaceState({ url: CURRENT.url }, "", CURRENT.url); } catch (e) {}
+    },
+  };
+
+  // Clone the right shell, fill the title/size slots, wire chrome, and return the
+  // app record. The whole window element is passed to mount() as `host`, so an
+  // app can target .dialog-body / .dialog-actions / .app-host as it needs.
+  function buildApp(name, url, mod) {
+    const meta = mod.meta || {};
+    const kind = meta.kind === "window" ? "window" : "dialog";
+    const tmpl = kind === "window" ? tmplWindow : tmplDialog;
+    const el = makeWindowEl(tmpl, { title: meta.title || name, maxWidth: meta.maxWidth, maxHeight: meta.maxHeight });
+
+    // Window-kind apps get a default size; dialogs size to their content. Both
+    // honor optional maxWidth/maxHeight ("phone on a desktop").
+    if (kind === "window") {
+      el.style.width = Math.min(meta.maxWidth || 760, 760) + "px";
+      el.style.height = Math.min(meta.maxHeight || 540, 540) + "px";
+    }
+
+    const rec = { name, url, el, mod, kind, api: null, focusedAt: Date.now(), _themeCbs: [], closable: true };
+    rec.api = makeApi(rec);
+
+    // Clicking anywhere on the window raises it; the traffic-light controls and
+    // the titlebar drag go through the same shared paths as the kernel; window
+    // apps also get the eight resize grips.
+    wireWindowChrome(rec);
+    el.addEventListener("pointerdown", () => WM.focus(rec), true);
+    attachTitlebarDrag(el, () => WM.focus(rec));
+    if (kind === "window") addResizeGrips(el);
+    return rec;
+  }
+
+  // The kernel-provided API handed to each app's mount(). Small on purpose.
+  function makeApi(rec) {
+    return {
+      close: () => WM.close(rec),
+      title: (t) => { const el = rec.el.querySelector(".app-title"); if (el) el.textContent = t; },
+      theme: () => document.documentElement.dataset.theme,
+      onThemeChange: (cb) => { if (typeof cb === "function") { appThemeCbs.add(cb); rec._themeCbs.push(cb); } },
+      createDialog: (opts) => createDialog(opts),
+    };
+  }
+
+  // Register the kernel website as a first-class window: same focus / z-order /
+  // chrome / drag paths as any app, but permanent (closable:false, so its close
+  // resets to a fresh first visit instead of destroying the window). It shares the
+  // same z-order band as the apps, so a pointerdown anywhere on it raises it above
+  // any open app (desktop only; on mobile an app is full-screen and the website is
+  // reached by closing/minimizing the app). Its URL is the live page address.
+  if (win) {
+    websiteRec = WM.register({
+      name: "website", kind: "website", el: win, closable: false,
+      url: () => CURRENT.url, onClose: () => hideWindow(true), focusedAt: 0,
+    });
+    wireWindowChrome(websiteRec);
+    attachTitlebarDrag(win, () => WM.focus(websiteRec));
+    win.addEventListener("pointerdown", () => { if (desktopMode()) WM.focus(websiteRec); }, true);
+  }
+
+  // Register the per-app desktop icons (always visible) to launch their apps.
+  if (DESK) document.querySelectorAll("#desktop .desk-icon[data-app]").forEach((el) => {
+    const name = el.dataset.app, url = el.dataset.appUrl || ("/app/" + name + "/");
+    DESK.register(el, { onOpen: () => WM.launch(name, url) });
+  });
+
   /* ---------- boot ---------- */
 
   // Apply the stored (or default) theme and wire up the tree.
@@ -1035,4 +1358,9 @@
 
   // Start collapsed when the sidebar is in overlay mode.
   if (isOverlay() && sidebarEl) { sidebarEl.classList.add("collapsed"); wasOverlay = true; }
+
+  // Direct /app/<name>/ load: minimize the website window behind and open the
+  // app over it ("website closes, app opens").
+  const bootApp = document.body.dataset.app;
+  if (bootApp) { bootedIntoApp = true; hideWindow(false); WM.launch(bootApp, location.href); }
 })();
