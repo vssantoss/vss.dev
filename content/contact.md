@@ -4,7 +4,7 @@ description = "Get in touch with Victor Santos, full-stack developer, open to wo
 path = "contact"
 [extra]
 filename = "contact.md"
-order = 4
+order = 5
 icon = "md"
 +++
 
@@ -23,4 +23,4 @@ A contact form is coming soon. Until then, the fastest ways to reach me:
 If you're hiring and you've read this far, mention `changelog` so I know
 you actually looked around.
 
-> Available now · remote-friendly · happy to relocate for the right team.
+> Available now · remote-friendly.

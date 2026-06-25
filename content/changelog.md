@@ -4,9 +4,11 @@ description = "An honest, versioned log of Victor Santos's work and craft over t
 path = "changelog"
 [extra]
 filename = "CHANGELOG.md"
-order = 2
+order = 3
 icon = "md"
 +++
+
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
 
 # Career Changelog
 
@@ -19,11 +21,9 @@ Versions are `YEAR.MONTH`.
 ### In progress
 - Shipping `vss.dev` (this site), built with Zola, no front-end framework
 - Interviewing for backend / full-stack roles
-- Reading *Designing Data-Intensive Applications*, cover to cover
 
 ### Goals
-- Open-source one tool I reach for every week
-- Publish one essay every week and keep the streak
+- Publish a post every week and keep the streak
 
 ---
 

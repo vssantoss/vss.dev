@@ -12,14 +12,11 @@ icon = "md"
 
 # Commands worth keeping around
 
-This is a running list of small commands that solve annoying development
-workflow problems.
+This is a running list of small commands that solve annoying development workflow problems.
 
 ## Stop Windows from content-indexing noisy folders
 
-Some folders are useful to keep on disk but not useful to search through
-with Windows indexing. A good example is `node_modules`: thousands of
-dependency files that can make indexing noisier than it needs to be.
+Some folders are useful to keep on disk but not useful to search through with Windows indexing. A good example is `node_modules`: thousands of dependency files that can make indexing noisier than it needs to be.
 
 To tell Windows not to content-index a folder:
 
@@ -39,5 +36,4 @@ This is especially useful for generated or dependency-heavy folders:
 attrib +I "C:\path\to\project\node_modules" /S /D
 ```
 
-This does not exclude the folder from OneDrive sync. It only tells
-Windows Search not to content-index those files.
+This does not exclude the folder from OneDrive sync. It only tells Windows Search not to content-index those files.

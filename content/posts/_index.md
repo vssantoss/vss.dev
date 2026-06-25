@@ -6,7 +6,7 @@ weight = 3
 paginate_by = 15
 [extra]
 filename = "posts"
-order = 6
+order = 7
 icon = "folder"
 sidebar_limit = 7
 +++

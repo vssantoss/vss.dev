@@ -4,9 +4,11 @@ description = "What Victor Santos is focused on right now, a snapshot of the pre
 path = "now"
 [extra]
 filename = "now.md"
-order = 3
+order = 4
 icon = "md"
 +++
+
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
 
 # Now
 
