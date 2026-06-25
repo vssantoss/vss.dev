@@ -448,6 +448,21 @@ html[data-theme="paper"] .seg button.on{color:#fff}
 
 /* Code inside a block: reset the inline-code chip styling. */
 .prose pre code{background:none;border:none;padding:0;color:var(--text);font-size:85%;line-height:inherit;white-space:pre}
+
+/* Notice banner: code-block box, accent-tinted, with larger type. */
+.prose .notice{
+  font-family:var(--mono);background:color-mix(in srgb,var(--accent) 9%,var(--bg-panel));
+  border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));border-left:3px solid var(--accent);border-right:3px solid var(--accent);
+  border-radius:8px;margin:0 0 24px;padding:16px 18px;line-height:1.5;
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+}
+.prose .notice-tag{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;
+  color:var(--accent);text-transform:uppercase;flex:none;
+}
+.prose .notice-msg{font-size:1.05em;color:var(--text)}
+.prose .notice-msg code{font-size:90%}
+.prose .notice-msg a{color:var(--accent)}
 .prose hr{border:0;height:.25em;background:var(--border);margin:24px 0}
 .prose hr::after{content:none}
 .prose table{border-collapse:collapse;margin:0 0 16px;font-family:var(--sans);font-size:14px;width:auto;max-width:100%;display:block;overflow:auto}

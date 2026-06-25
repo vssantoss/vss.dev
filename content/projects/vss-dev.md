@@ -11,6 +11,8 @@ filename = "vss-dev.md"
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # Building vss.dev as a code editor
 
 I wanted my site to *be* the thing it talks about. So instead of a hero section and a wall of buzzwords, you're looking at an editor (recognize which one?), and everything here is a file you can open.

@@ -8,6 +8,8 @@ order = 4
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # Now
 
 > What I'm focused on, updated whenever it changes.

@@ -10,6 +10,8 @@ filename = "building-crypto-average-price.md"
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # Building Crypto Average Price
 
 I built [Crypto Average Price](https://github.com/vssantoss/crypto-average-price) because a spreadsheet was starting to become the wrong tool for the job.

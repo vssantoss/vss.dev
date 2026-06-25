@@ -8,6 +8,8 @@ order = 2
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # About
 
 The [README](/) is the short version. This is the longer one.

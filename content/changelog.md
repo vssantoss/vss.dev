@@ -8,6 +8,8 @@ order = 3
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # Career Changelog
 
 All notable milestones in my work and craft.

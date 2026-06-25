@@ -11,6 +11,8 @@ filename = "crypto-average-price.md"
 icon = "md"
 +++
 
+{% notice() %}This post is a work in progress and will be updated soon.{% end %}
+
 # Crypto Average Price
 
 A local-first tool for importing Crypto.com Exchange transaction reports, applying Banco Central do Brasil PTAX rates, and calculating average acquisition prices and profit/loss in BRL, with every row explainable.
