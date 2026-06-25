@@ -251,12 +251,17 @@ body{
 .children{overflow:hidden;transition:height .2s ease;position:relative}
 .children::before{content:"";position:absolute;left:22px;top:1px;bottom:1px;width:1px;background:var(--border-soft)}
 .children.closed{display:none}
+/* The tree ships expanded so it works without JS. When JS is available, collapse
+   the folders before editor.js runs (which then marks #tree.ready) to avoid a
+   flash of the full menu. */
+html.js .tree:not(.ready) .children{display:none}
 
 /* folder twisties (VS Code-style): empty slot on files keeps icons aligned */
 .node .chev{width:16px;flex:none;display:grid;place-items:center;margin-right:-2px;color:var(--text-faint);transition:transform .15s ease}
 .node .chev svg{width:12px;height:12px}
 .node.folder:hover .chev{color:var(--text)}
 .node.folder.collapsed .chev{transform:rotate(-90deg)}
+html.js .tree:not(.ready) .node.folder .chev{transform:rotate(-90deg)}
 .tree.tree-collapsed{display:none}
 
 /* ---------- main ---------- */
@@ -443,6 +448,21 @@ html[data-theme="paper"] .seg button.on{color:#fff}
 
 /* Code inside a block: reset the inline-code chip styling. */
 .prose pre code{background:none;border:none;padding:0;color:var(--text);font-size:85%;line-height:inherit;white-space:pre}
+
+/* Notice banner: code-block box, accent-tinted, with larger type. */
+.prose .notice{
+  font-family:var(--mono);background:color-mix(in srgb,var(--accent) 9%,var(--bg-panel));
+  border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));border-left:3px solid var(--accent);border-right:3px solid var(--accent);
+  border-radius:8px;margin:0 0 24px;padding:16px 18px;line-height:1.5;
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+}
+.prose .notice-tag{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;
+  color:var(--accent);text-transform:uppercase;flex:none;
+}
+.prose .notice-msg{font-size:1.05em;color:var(--text)}
+.prose .notice-msg code{font-size:90%}
+.prose .notice-msg a{color:var(--accent)}
 .prose hr{border:0;height:.25em;background:var(--border);margin:24px 0}
 .prose hr::after{content:none}
 .prose table{border-collapse:collapse;margin:0 0 16px;font-family:var(--sans);font-size:14px;width:auto;max-width:100%;display:block;overflow:auto}

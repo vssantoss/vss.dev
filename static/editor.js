@@ -95,6 +95,12 @@
 
   // Wire click / keyboard toggles onto every folder, plus the project root.
   function attachFolderToggles() {
+    // The tree ships expanded (so it works without JS); collapse every folder now
+    // that JS is in control, then mark the tree ready so CSS hands over.
+    const tree = $("#tree");
+    document.querySelectorAll(".tree .node.folder").forEach((f) => setFolderOpen(f, false));
+    if (tree) tree.classList.add("ready");
+
     document.querySelectorAll(".tree .node.folder").forEach((f) => {
       const toggle = () => {
         const kids = f.nextElementSibling;
@@ -106,7 +112,7 @@
     });
 
     // The project root collapses/expands the whole tree (like the editor's root node).
-    const proj = $(".sb-proj"), tree = $("#tree");
+    const proj = $(".sb-proj");
     if (proj && tree) {
       const toggleProj = () => {
         const collapsed = proj.classList.toggle("collapsed");

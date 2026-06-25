@@ -43,8 +43,8 @@
 {% if page or section %}{% set parts = relpath | split(pat="/") %}{% if parts | length > 1 %}{% set crumb = parts[0] ~ "/" ~ fname %}{% endif %}{% endif %}
 {% if term %}{% set crumb = "tags/" ~ term.name %}{% endif %}
 {% if terms %}{% set crumb = "tags" %}{% endif %}
-{% set page_title = title ~ " · Victor Santos" %}
-{% if is_home %}{% set page_title = "Victor Santos, full-stack developer" %}{% endif %}
+{% set page_title = "vss.dev · " ~ title %}
+{% if is_home %}{% set page_title = "vss.dev · Victor Santos' Projects & Knowledge Base" %}{% endif %}
 
 <title>{{ page_title }}</title>
 <meta name="description" content="{{ desc }}">
@@ -67,8 +67,8 @@
 <meta name="twitter:description" content="{{ desc }}">
 <meta name="twitter:image" content="{{ get_url(path="img/og.png") | safe }}">
 
-{# ---- no-FOUC theme (set before stylesheet paints) ---- #}
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('vss-theme')||'ink';}catch(e){document.documentElement.dataset.theme='ink';}</script>
+{# ---- no-FOUC theme + JS flag (set before stylesheet paints) ---- #}
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('vss-theme')||'ink';}catch(e){document.documentElement.dataset.theme='ink';}document.documentElement.classList.add('js');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

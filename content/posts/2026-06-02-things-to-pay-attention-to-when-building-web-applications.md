@@ -12,18 +12,13 @@ icon = "md"
 
 # Things to pay attention to when building web applications
 
-This is a running list of small details I do not want to forget when
-building web applications.
+This is a running list of small details I do not want to forget when building web applications.
 
-Some will be about forms. Some will be about accessibility,
-performance, browser behavior, APIs, deployment, or anything else that
-only becomes obvious after the product is in front of real users.
+Some will be about forms. Some will be about accessibility, performance, browser behavior, APIs, deployment, or anything else that only becomes obvious after the product is in front of real users.
 
 ## Disable password manager suggestions on non-login text fields
 
-If a field is for search, filtering, tagging, naming a project, writing a
-note, or entering any text that is not authentication data, tell password
-managers to leave it alone.
+If a field is for search, filtering, tagging, naming a project, writing a note, or entering any text that is not authentication data, tell password managers to leave it alone.
 
 The common attributes are:
 
@@ -32,8 +27,7 @@ The common attributes are:
 - Bitwarden: `data-bwignore`
 - Dashlane: `data-form-type="other"`
 
-In practice, I usually put the set on text inputs that should never open
-a credential picker:
+In practice, I usually put the set on text inputs that should never open a credential picker:
 
 ```html
 <input
@@ -48,9 +42,6 @@ a credential picker:
 />
 ```
 
-This is not a replacement for good form semantics. Login forms should
-still use proper `autocomplete` values like `username`,
-`current-password`, and `new-password`.
+This is not a replacement for good form semantics. Login forms should still use proper `autocomplete` values like `username`, `current-password`, and `new-password`.
 
-The point is simpler: do not let authentication tooling interrupt fields
-that have nothing to do with authentication.
+The point is simpler: do not let authentication tooling interrupt fields that have nothing to do with authentication.
