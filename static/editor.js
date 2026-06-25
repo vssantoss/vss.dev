@@ -1106,14 +1106,24 @@
     clampGeom(w);
   }
 
+  // Clone a window/dialog template, fill its title, apply optional size caps,
+  // park it off-screen (so placeCenter can measure it without a flash at 0,0),
+  // and append it to the stage. The caller wires chrome/drag and centers it.
+  function makeWindowEl(tmpl, opts) {
+    const el = tmpl.content.firstElementChild.cloneNode(true);
+    const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
+    if (opts.maxWidth) el.style.maxWidth = opts.maxWidth + "px";
+    if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
+    el.style.left = el.style.top = "-9999px";
+    stage.appendChild(el);
+    return el;
+  }
+
   // Build a standalone dialog (NOT tracked as an app, doesn't count toward
   // MAX_APPS). Returns { el, close }. Backs api.createDialog.
   function createDialog(opts) {
     opts = opts || {};
-    const el = tmplDialog.content.firstElementChild.cloneNode(true);
-    const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
-    el.style.maxWidth = (opts.maxWidth || 380) + "px";
-    if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
+    const el = makeWindowEl(tmplDialog, { title: opts.title, maxWidth: opts.maxWidth || 380, maxHeight: opts.maxHeight });
     const body = el.querySelector(".dialog-body"); if (body) body.textContent = opts.message || "";
     const actions = el.querySelector(".dialog-actions");
     const close = () => el.remove();
@@ -1125,9 +1135,7 @@
       actions.appendChild(btn);
     });
     const x = el.querySelector("[data-win-close]"); if (x) x.addEventListener("click", close);
-    el.style.left = el.style.top = "-9999px";
     el.style.zIndex = Z_DIALOGS;
-    stage.appendChild(el);
     // Dialogs share one z band; raising one to the front is just moving it to the
     // end of the stage so it paints over its equal-z siblings.
     attachTitlebarDrag(el, () => { stage.appendChild(el); });
@@ -1187,6 +1195,11 @@
     // be a string or a getter.
     focus(rec) {
       if (!rec) return;
+      // Already frontmost and visible: nothing to do. Skips a redundant restack
+      // and replaceState when a single titlebar press fires both the capture-phase
+      // focus listener and the drag's onFocus. Exactly one window carries
+      // ".focused" (the last one focused), so this is an O(1) frontmost check.
+      if (rec.el.classList.contains("focused") && !rec.el.classList.contains("hidden")) return;
       rec.el.classList.remove("hidden");
       rec.focusedAt = Date.now();
       this.restack();
@@ -1272,10 +1285,7 @@
     const meta = mod.meta || {};
     const kind = meta.kind === "window" ? "window" : "dialog";
     const tmpl = kind === "window" ? tmplWindow : tmplDialog;
-    const el = tmpl.content.firstElementChild.cloneNode(true);
-
-    const titleEl = el.querySelector(".app-title");
-    if (titleEl) titleEl.textContent = meta.title || name;
+    const el = makeWindowEl(tmpl, { title: meta.title || name, maxWidth: meta.maxWidth, maxHeight: meta.maxHeight });
 
     // Window-kind apps get a default size; dialogs size to their content. Both
     // honor optional maxWidth/maxHeight ("phone on a desktop").
@@ -1283,12 +1293,6 @@
       el.style.width = Math.min(meta.maxWidth || 760, 760) + "px";
       el.style.height = Math.min(meta.maxHeight || 540, 540) + "px";
     }
-    if (meta.maxWidth) el.style.maxWidth = meta.maxWidth + "px";
-    if (meta.maxHeight) el.style.maxHeight = meta.maxHeight + "px";
-
-    // Start off-screen to avoid a flash at 0,0 before placeCenter runs.
-    el.style.left = el.style.top = "-9999px";
-    stage.appendChild(el);
 
     const rec = { name, url, el, mod, kind, api: null, focusedAt: Date.now(), _themeCbs: [], closable: true };
     rec.api = makeApi(rec);
