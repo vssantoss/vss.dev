@@ -107,7 +107,9 @@ body{
 /* ============================== WINDOW SHELL ============================== */
 
 /* The stage centers the window over the backdrop. */
-.stage{position:relative;z-index:1;height:100vh;display:flex;align-items:center;justify-content:center;padding:26px}
+/* 100dvh tracks the visible viewport as mobile browser bars show/hide, so the
+   bottom icon row is never behind the toolbar; 100vh is the fallback. */
+.stage{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;padding:26px}
 .window{
   width:100%;max-width:1180px;height:100%;max-height:780px;
   min-width:360px;min-height:420px;
@@ -710,6 +712,9 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
   .window.app{
     position:fixed;inset:0;
     left:0!important;top:0!important;width:100%!important;height:100%!important;
+    /* Same dvh treatment as .stage: keep the window's bottom edge (status bar)
+       above the browser's dynamic toolbar. */
+    height:100dvh!important;
     max-width:none!important;max-height:none!important;min-width:0;
     border-radius:0;border:none;
   }
