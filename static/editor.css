@@ -707,9 +707,11 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
   .dots .dot{position:relative}
   .dots .dot::after{content:"";position:absolute;inset:-7px}
 
-  /* App windows go full-screen too (one at a time on mobile); inline drag/resize
-     geometry is overridden and the resize grips are dropped. */
-  .window.app{
+  /* Window-kind apps go full-screen too (one at a time on mobile); inline
+     drag/resize geometry is overridden and the resize grips are dropped.
+     Dialog-kind apps are the exception: they keep the floating, centered,
+     content-sized desktop look (rule below). */
+  .window.app:not(.dialog){
     position:fixed;inset:0;
     left:0!important;top:0!important;width:100%!important;height:100%!important;
     /* Same dvh treatment as .stage: keep the window's bottom edge (status bar)
@@ -719,6 +721,16 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
     border-radius:0;border:none;
   }
   .window.app .win-handle{display:none}
+
+  /* Dialogs are modal on mobile: a viewport-sized shadow dims everything
+     behind the dialog, and everything behind it goes inert, so the dialog
+     has to be closed before the desktop or another launcher can be used. */
+  .window.app.dialog{
+    max-width:calc(100% - 28px);box-shadow:0 0 0 100vmax rgba(0,0,0,.5);
+    /* Restore the desktop window look that the edge-to-edge rules above strip. */
+    border-radius:var(--r);border:1px solid var(--border);
+  }
+  body:has(.window.app.dialog:not(.hidden)) :is(.desktop,.window:not(.dialog)){pointer-events:none}
 }
 
 /* Respect reduced-motion: kill the entrance animations. */

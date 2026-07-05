@@ -1112,7 +1112,9 @@
   function makeWindowEl(tmpl, opts) {
     const el = tmpl.content.firstElementChild.cloneNode(true);
     const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
-    if (opts.maxWidth) el.style.maxWidth = opts.maxWidth + "px";
+    // min() keeps a requested cap from overflowing narrow screens (the CSS
+    // mobile rules also cap dialogs that don't request a width).
+    if (opts.maxWidth) el.style.maxWidth = "min(" + opts.maxWidth + "px, calc(100% - 28px))";
     if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
     el.style.left = el.style.top = "-9999px";
     stage.appendChild(el);
