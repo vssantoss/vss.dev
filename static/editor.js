@@ -14,6 +14,12 @@
   const FILES = window.FILES || [];
   const CURRENT = window.CURRENT || { name: "", crumb: "", url: location.href };
 
+  // Stash the browser's PWA install prompt for the Install mini-app: the
+  // beforeinstallprompt event fires once, long before that module is loaded
+  // on demand, so the kernel has to catch and hold it.
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); window.__installPrompt = e; });
+  window.addEventListener("appinstalled", () => { window.__installPrompt = null; });
+
   // Normalise a URL to a comparable pathname (no trailing slash, "/" for root).
   const norm = (p) => { try { return new URL(p, location.href).pathname.replace(/\/$/, "") || "/"; } catch (e) { return p; } };
 
