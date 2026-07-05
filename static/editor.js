@@ -1373,4 +1373,12 @@
   // app over it ("website closes, app opens").
   const bootApp = document.body.dataset.app;
   if (bootApp) { bootedIntoApp = true; hideWindow(false); WM.launch(bootApp, location.href); }
+
+  // Installed-app launches boot to the desktop: the website window starts
+  // minimized behind its launcher instead of opening automatically.
+  else if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) hideWindow(false);
+
+  // Boot is done; release the pre-boot CSS guard that kept the window from
+  // flashing on standalone launches before this script ran.
+  document.documentElement.classList.add("booted");
 })();

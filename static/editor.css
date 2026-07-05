@@ -127,6 +127,11 @@ body{
 }
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.992)}to{opacity:1;transform:none}}
 
+/* Installed-app launches boot to the desktop (editor.js minimizes the window
+   at boot). This guard keeps the server-rendered window from flashing before
+   that deferred script runs; .js so a no-JS load still shows the site. */
+@media(display-mode:standalone){html.js:not(.booted) .window{display:none}}
+
 /* ---------- window states (driven by editor.js) ---------- */
 
 /* free-floating; geometry set inline, no size cap */
