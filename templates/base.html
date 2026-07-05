@@ -37,7 +37,16 @@
   {% set desc = "Browse vss.dev by tag." %}
   {% set fname = "tags" %}
   {% set is_virtual = true %}
+{% else %}
+  {# No page/section/term context: the 404 template. #}
+  {% set title = "404" %}
+  {% set desc = "This file does not exist in the vss.dev workspace." %}
+  {% set fname = "404" %}
+  {% set is_virtual = true %}
+  {% set is_404 = true %}
 {% endif %}
+{# current_url is not provided on the 404 render; fall back to the site root. #}
+{% set cur = current_url | default(value=config.base_url) %}
 {% set is_home = relpath == "_index.md" %}
 {% set crumb = fname %}
 {% if page or section %}{% set parts = relpath | split(pat="/") %}{% if parts | length > 1 %}{% set crumb = parts[0] ~ "/" ~ fname %}{% endif %}{% endif %}
@@ -48,10 +57,10 @@
 
 <title>{{ page_title }}</title>
 <meta name="description" content="{{ desc }}">
-<link rel="canonical" href="{{ current_url | safe }}">
+<link rel="canonical" href="{{ cur | safe }}">
 <meta name="author" content="{{ config.extra.author }}">
 {# App boot-stubs and other hidden routes stay out of the index. #}
-{% set noindex = (page and page.extra.app) or (page and page.extra.hidden) or (section and section.extra.hidden) %}
+{% set noindex = (page and page.extra.app) or (page and page.extra.hidden) or (section and section.extra.hidden) or is_404 | default(value=false) %}
 <meta name="robots" content="{% if noindex %}noindex, nofollow{% else %}index, follow{% endif %}">
 <meta name="theme-color" content="#17161c">
 <link rel="icon" type="image/svg+xml" href="{{ get_url(path="img/favicon.svg") | safe }}">
@@ -63,7 +72,7 @@
 <meta property="og:site_name" content="vss.dev">
 <meta property="og:title" content="{{ page_title }}">
 <meta property="og:description" content="{{ desc }}">
-<meta property="og:url" content="{{ current_url | safe }}">
+<meta property="og:url" content="{{ cur | safe }}">
 <meta property="og:image" content="{{ get_url(path="img/og.png") | safe }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ page_title }}">
@@ -90,7 +99,7 @@
 </script>
 {% else %}
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"{{ title }}","description":"{{ desc }}","url":"{{ current_url | safe }}"}
+{"@context":"https://schema.org","@type":"WebPage","name":"{{ title }}","description":"{{ desc }}","url":"{{ cur | safe }}"}
 </script>
 {% endif %}
 </head>
@@ -269,7 +278,7 @@
 
 {# data the editor JS needs #}
 <script>
-window.CURRENT = { name: {{ fname | json_encode | safe }}, crumb: {{ crumb | json_encode | safe }}, url: {{ current_url | json_encode | safe }} };
+window.CURRENT = { name: {{ fname | json_encode | safe }}, crumb: {{ crumb | json_encode | safe }}, url: {{ cur | json_encode | safe }} };
 window.FILES = [
   { name:"README.md", path:"README.md", url:{{ get_url(path="@/_index.md") | json_encode | safe }} },
   {%- set root = get_section(path="_index.md") -%}
