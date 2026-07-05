@@ -1344,9 +1344,16 @@
     win.addEventListener("pointerdown", () => { if (desktopMode()) WM.focus(websiteRec); }, true);
   }
 
+  // True when running as the installed app (navigator.standalone is iOS
+  // Safari's pre-standard spelling of display-mode: standalone).
+  const runningStandalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
   // Register the per-app desktop icons (always visible) to launch their apps.
+  // Exception: inside the installed app the Install app is moot, so its icon
+  // is dropped before registration and never holds a grid cell.
   if (DESK) document.querySelectorAll("#desktop .desk-icon[data-app]").forEach((el) => {
     const name = el.dataset.app, url = el.dataset.appUrl || ("/app/" + name + "/");
+    if (runningStandalone && name === "install") { el.hidden = true; return; }
     DESK.register(el, { onOpen: () => WM.launch(name, url) });
   });
 
@@ -1376,7 +1383,7 @@
 
   // Installed-app launches boot to the desktop: the website window starts
   // minimized behind its launcher instead of opening automatically.
-  else if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) hideWindow(false);
+  else if (runningStandalone) hideWindow(false);
 
   // Boot is done; release the pre-boot CSS guard that kept the window from
   // flashing on standalone launches before this script ran.
