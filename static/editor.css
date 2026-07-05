@@ -645,8 +645,10 @@ html[data-theme="paper"] .statusbar{color:#fff}
 /* Window-kind body: the content host fills the area below the titlebar. */
 .window.app .main.app-host{background:var(--bg-editor);overflow:auto}
 
-/* Dialog: title + message + a right-aligned button row, no status bar. */
+/* Dialog: title + message + a right-aligned button row, no status bar.
+   touch-action lets the titlebar drag own touch gestures (mobile drag). */
 .window.app.dialog{min-width:300px}
+.window.app.dialog .titlebar{touch-action:none}
 .window.app.dialog .dialog-body{
   flex:1;min-height:40px;padding:22px 22px 8px;
   font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--text);

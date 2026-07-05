@@ -1076,7 +1076,9 @@
     const tb = w.querySelector(".titlebar");
     if (!tb) return;
     tb.addEventListener("pointerdown", (e) => {
-      if (!desktopMode() || e.button !== 0) return;
+      // Dialogs float on mobile too, so they stay draggable there; every
+      // other window is full-screen below the breakpoint.
+      if ((!desktopMode() && !w.classList.contains("dialog")) || e.button !== 0) return;
       if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
       if (w.classList.contains("maximized")) return;
       if (onFocus) onFocus();
