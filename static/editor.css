@@ -732,7 +732,10 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
     /* Restore the desktop window look that the edge-to-edge rules above strip. */
     border-radius:var(--r);border:1px solid var(--border);
   }
-  body:has(.window.app.dialog:not(.hidden)) :is(.desktop,.window:not(.dialog)){pointer-events:none}
+  /* .desk-icon must be listed too: it sets pointer-events:auto to stay
+     clickable inside the inert .desktop layer, which would win over the
+     none inherited from .desktop alone. */
+  body:has(.window.app.dialog:not(.hidden)) :is(.desktop,.desk-icon,.window:not(.dialog)){pointer-events:none}
 }
 
 /* Respect reduced-motion: kill the entrance animations. */
