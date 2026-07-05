@@ -618,7 +618,7 @@ html[data-theme="paper"] .statusbar{color:#fff}
   background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);
   border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
 }
-.desk-glyph svg{width:24px;height:24px}
+.desk-glyph svg{width:32px;height:32px}
 .desk-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
 
 /* ============================== MINI-APP WINDOWS ============================== */
