@@ -628,8 +628,9 @@
     if ($("#theme-icon")) $("#theme-icon").innerHTML = t === "ink" ? moon : sun;
     appThemeCbs.forEach((cb) => { try { cb(t); } catch (e) {} });
   }
-  if ($("#btn-theme")) $("#btn-theme").addEventListener("click", () =>
-    setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
+  const toggleTheme = () =>
+    setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink");
+  if ($("#btn-theme")) $("#btn-theme").addEventListener("click", toggleTheme);
 
   /* ---------- sidebar ---------- */
 
@@ -1356,6 +1357,10 @@
     if (runningStandalone && name === "install") { el.hidden = true; return; }
     DESK.register(el, { onOpen: () => WM.launch(name, url) });
   });
+
+  // The theme icon is a switch, not a launcher: tapping it flips the theme in
+  // place and its moon/sun glyph follows via CSS on html[data-theme].
+  if (DESK && $("#icon-theme")) DESK.register($("#icon-theme"), { onOpen: toggleTheme });
 
   /* ---------- guided tour: first-visit coach marks ---------- */
 

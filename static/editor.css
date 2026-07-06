@@ -630,6 +630,11 @@ html[data-theme="paper"] .statusbar{color:#fff}
   border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
 }
 .desk-glyph svg{width:32px;height:32px}
+
+/* The theme icon shows the current theme's glyph. Moon is the default so a
+   missing data-theme (pre-boot) still renders exactly one glyph. */
+html[data-theme="paper"] #icon-theme .g-moon,
+html:not([data-theme="paper"]) #icon-theme .g-sun{display:none}
 .desk-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
 
 /* ============================== MINI-APP WINDOWS ============================== */

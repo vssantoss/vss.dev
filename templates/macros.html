@@ -77,6 +77,10 @@
   {%- elif name == "install" -%}
   {#- Install as PWA: an arrow dropping into a tray. -#}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5V14"/><path d="M8.2 10.4l3.8 3.8 3.8-3.8"/><path d="M4.5 15.5v1.8a2.2 2.2 0 0 0 2.2 2.2h10.6a2.2 2.2 0 0 0 2.2-2.2v-1.8"/></svg>
+  {%- elif name == "theme" -%}
+  {#- Theme switch: moon and sun both rendered; CSS on html[data-theme] shows
+      the one matching the current theme (moon in ink, sun in paper). -#}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="g-moon"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></g><g class="g-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></g></svg>
   {%- elif name == "tasklist" -%}
   {#- Shared task list: two done rows, one still pending. -#}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6l1.7 1.7 3.2-3.2"/><path d="M12.5 6.2h7"/><path d="M4.5 12.6l1.7 1.7 3.2-3.2"/><path d="M12.5 12.8h7"/><path d="M6 19.4h.01"/><path d="M12.5 19.4h7"/></svg>

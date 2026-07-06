@@ -124,6 +124,12 @@
     <span class="desk-label">{{ ap.title }}</span>
   </button>
   {% endfor %}
+  {# Theme switch: not an app and opens no window; tapping it flips the
+     dark/light theme in place and the glyph follows. #}
+  <button class="desk-icon" id="icon-theme" data-icon="theme" type="button" aria-label="Toggle theme">
+    <span class="desk-glyph">{{ m::glyph(name="theme") }}</span>
+    <span class="desk-label">Theme</span>
+  </button>
 </div>
 
 <div class="window">
