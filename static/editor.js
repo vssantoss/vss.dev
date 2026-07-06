@@ -1357,6 +1357,100 @@
     DESK.register(el, { onOpen: () => WM.launch(name, url) });
   });
 
+  /* ---------- guided tour: first-visit coach marks ---------- */
+
+  // Each step spotlights one piece of the window chrome and explains it in a
+  // sentence or two. Steps whose target is missing or not rendered are
+  // dropped at start time, so this list can name things that only exist on
+  // some pages without breaking the tour.
+  const TOUR_KEY = "vss-tour";
+  const TOUR_STEPS = [
+    { sel: ".titlebar .dots", text: "These work like real window controls: red closes this window, yellow minimizes it. Either way you land on the desktop, where every icon reopens its window." },
+    { sel: "#act-files", text: "The Explorer. It opens and closes the file tree, which is the menu here: every post, project, and page on this site is a file in it." },
+    { sel: "#act-search", text: "Search. It opens the command palette; type a few letters to filter and jump straight to any page." },
+    { sel: '.activity .act[aria-label="GitHub"]', text: "My GitHub profile. Opens in a new tab." },
+    { sel: '.activity .act[aria-label="Contact"]', text: "Contact. Opens the page with the ways to reach me." },
+    { sel: "#btn-theme", text: "The theme switch: toggles between the dark and light look. Your pick is remembered for next time." },
+  ];
+
+  const TOUR = (function () {
+    let live = [], idx = 0, veil, spot, card, stepEl, textEl, backBtn, nextBtn;
+
+    const btn = (label, cls, onClick) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = cls; b.textContent = label;
+      b.addEventListener("click", onClick);
+      return b;
+    };
+
+    function build() {
+      veil = document.createElement("div"); veil.className = "tour-veil";
+      spot = document.createElement("div"); spot.className = "tour-spot";
+      card = document.createElement("div"); card.className = "tour-card";
+      card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "How vss.dev works");
+      stepEl = document.createElement("div"); stepEl.className = "tour-step";
+      textEl = document.createElement("div"); textEl.className = "tour-text";
+      const actions = document.createElement("div"); actions.className = "tour-actions";
+      backBtn = btn("Back", "dlg-btn", () => show(idx - 1));
+      nextBtn = btn("Next", "dlg-btn primary", () => (idx >= live.length - 1 ? end() : show(idx + 1)));
+      actions.append(btn("Skip", "dlg-btn tour-skip", end), backBtn, nextBtn);
+      card.append(stepEl, textEl, actions);
+      document.body.append(veil, spot, card);
+    }
+
+    // Spotlight the target; card below it, or above when there is no room.
+    // The box is clamped to the viewport; its accent ring is inset (see CSS)
+    // so even an edge-flush box shows a whole, evenly shaped ring.
+    function place() {
+      const r = live[idx].el.getBoundingClientRect(), pad = 8, gap = 12, edge = 0;
+      const left = Math.max(edge, r.left - pad), top = Math.max(edge, r.top - pad);
+      const right = Math.min(innerWidth - edge, r.right + pad);
+      const bottom = Math.min(innerHeight - edge, r.bottom + pad);
+      spot.style.left = left + "px";
+      spot.style.top = top + "px";
+      spot.style.width = Math.max(0, right - left) + "px";
+      spot.style.height = Math.max(0, bottom - top) + "px";
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      let ctop = bottom + gap;
+      if (ctop + ch > innerHeight - 10) ctop = top - gap - ch;
+      card.style.top = Math.max(10, ctop) + "px";
+      card.style.left = Math.min(Math.max(10, (left + right) / 2 - cw / 2), Math.max(10, innerWidth - cw - 10)) + "px";
+    }
+
+    function show(i) {
+      idx = i;
+      stepEl.textContent = (i + 1) + " / " + live.length;
+      textEl.textContent = live[i].text;
+      backBtn.disabled = i === 0;
+      nextBtn.textContent = i === live.length - 1 ? "Done" : "Next";
+      place();
+    }
+
+    const onResize = () => place();
+    const onKey = (e) => { if (e.key === "Escape") end(); };
+
+    function start() {
+      if (veil) return;
+      live = TOUR_STEPS.map((s) => ({ text: s.text, el: $(s.sel) })).filter((s) => s.el && s.el.offsetWidth > 0);
+      if (!live.length) return;
+      build(); show(0);
+      window.addEventListener("resize", onResize);
+      document.addEventListener("keydown", onKey);
+    }
+
+    // Finishing and skipping both count as seen: the tour auto-runs only once.
+    function end() {
+      if (!veil) return;
+      [veil, spot, card].forEach((n) => n.remove());
+      veil = spot = card = null;
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("keydown", onKey);
+      try { localStorage.setItem(TOUR_KEY, "done"); } catch (e) {}
+    }
+
+    return { start };
+  })();
+
   /* ---------- boot ---------- */
 
   // Apply the stored (or default) theme and wire up the tree.
@@ -1388,4 +1482,13 @@
   // Boot is done; release the pre-boot CSS guard that kept the window from
   // flashing on standalone launches before this script ran.
   document.documentElement.classList.add("booted");
+
+  // First visit on a small screen: walk through the window chrome once. The
+  // desktop metaphor mostly explains itself with a mouse, much less so on a
+  // phone. Only when the website window is actually on screen (so not on
+  // direct app boots or installed-app launches, which land on the desktop),
+  // and delayed past the window's rise animation so the targets sit still.
+  const tourSeen = (() => { try { return !!localStorage.getItem(TOUR_KEY); } catch (e) { return true; } })();
+  if (!tourSeen && !desktopMode() && win && !win.classList.contains("hidden"))
+    setTimeout(() => TOUR.start(), 900);
 })();

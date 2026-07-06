@@ -672,6 +672,31 @@ html[data-theme="paper"] .statusbar{color:#fff}
 .dlg-btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1208}
 html[data-theme="paper"] .dlg-btn.primary{color:#fff}
 
+/* ============================== GUIDED TOUR ============================== */
+
+/* First-visit coach marks: a spotlight cut out of a full-screen dim (the
+   viewport-sized box-shadow trick) plus an explainer card. The veil under
+   both swallows taps so the tour owns the screen while it runs. */
+.tour-veil{position:fixed;inset:0;z-index:69}
+.tour-spot{
+  position:fixed;z-index:70;pointer-events:none;border-radius:10px;
+  /* The accent ring is inset so it stays whole and evenly shaped even when
+     the box is clamped against a screen edge. 200vmax: a 100vmax spread from
+     a corner-pinned box leaves the opposite screen corner outside its
+     rounded shadow corner (up to ~1.42vmax away). */
+  box-shadow:0 0 0 200vmax rgba(0,0,0,.62),inset 0 0 0 2px var(--accent);
+  transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease;
+}
+.tour-card{
+  position:fixed;z-index:71;max-width:min(330px,calc(100vw - 24px));
+  background:var(--bg-window);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.7);padding:13px 15px;
+}
+.tour-step{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-bottom:6px}
+.tour-text{font-family:var(--sans);font-size:13.5px;line-height:1.55;color:var(--text)}
+.tour-actions{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tour-actions .tour-skip{margin-right:auto}
+
 /* ============================== RESPONSIVE ============================== */
 
 /* Window-relative: the chrome reflows to the window's own width, so dragging
@@ -733,7 +758,7 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
      behind the dialog, and everything behind it goes inert, so the dialog
      has to be closed before the desktop or another launcher can be used. */
   .window.app.dialog{
-    max-width:calc(100% - 28px);box-shadow:0 0 0 100vmax rgba(0,0,0,.5);
+    max-width:calc(100% - 28px);box-shadow:0 0 0 200vmax rgba(0,0,0,.5);
     /* Restore the desktop window look that the edge-to-edge rules above strip. */
     border-radius:var(--r);border:1px solid var(--border);
   }
@@ -747,4 +772,5 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
 @media(prefers-reduced-motion:reduce){
   .window,.node,.prose>*,.source .row,.desk-icon{animation:none!important}
   .tabovf .chev{transition:none}
+  .tour-spot{transition:none}
 }
