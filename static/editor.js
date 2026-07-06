@@ -245,6 +245,84 @@
     if (menu && menu.hidden) openTabMenu(); else closeTabMenu();
   }
 
+  /* ---------- tab context menu: Close / Close Others / Close All ---------- */
+
+  // Keep only the given tab. If it wasn't the current page, go to it: it is
+  // the only tab left.
+  function closeOtherTabs(url) {
+    writeTabs(readTabs().filter((t) => norm(t.url) === norm(url)));
+    if (norm(url) === getCur()) renderTabs(); else navigate(url, true);
+  }
+
+  // Close every tab and drop into the welcome state, like closing the last tab.
+  function closeAllTabs() { writeTabs([]); showWelcome(); }
+
+  // The floating menu element; only one can exist at a time.
+  let tabCtx = null;
+
+  function closeTabCtx() { if (tabCtx) { tabCtx.remove(); tabCtx = null; } }
+
+  // Build the menu for one tab and show it at (x, y), clamped to the viewport.
+  function openTabCtx(url, x, y) {
+    closeTabCtx(); closeTabMenu();
+    tabCtx = document.createElement("div");
+    tabCtx.className = "tabmenu ctx";
+    tabCtx.setAttribute("role", "menu");
+    [["Close", () => closeTab(url)],
+     ["Close Others", () => closeOtherTabs(url)],
+     ["Close All", closeAllTabs]].forEach(([label, run]) => {
+      const it = document.createElement("div");
+      it.className = "item"; it.setAttribute("role", "menuitem"); it.tabIndex = 0;
+      it.innerHTML = '<span class="nm">' + label + "</span>";
+      const go = (e) => { e.preventDefault(); e.stopPropagation(); closeTabCtx(); run(); };
+      it.addEventListener("click", go);
+      it.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") go(e); });
+      tabCtx.appendChild(it);
+    });
+    document.body.appendChild(tabCtx);
+    const r = tabCtx.getBoundingClientRect();
+    tabCtx.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
+    tabCtx.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+  }
+
+  // Desktop right-click (Android also routes touch long-press here).
+  document.addEventListener("contextmenu", (e) => {
+    const tab = e.target.closest("#tabstrip .tab");
+    if (!tab) { closeTabCtx(); return; }
+    e.preventDefault();
+    openTabCtx(tab.dataset.url, e.clientX, e.clientY);
+  });
+
+  // Touch long-press fallback: iOS Safari never fires contextmenu for touch.
+  // Movement past a small threshold (= scrolling the strip) cancels it, and
+  // the ghost click that follows the release is swallowed in capture phase so
+  // it can neither follow the tab link nor instantly dismiss the menu.
+  (function () {
+    let timer = 0, sx = 0, sy = 0, fired = false;
+    document.addEventListener("pointerdown", (e) => {
+      const tab = e.pointerType === "touch" ? e.target.closest("#tabstrip .tab") : null;
+      if (!tab) return;
+      sx = e.clientX; sy = e.clientY; fired = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => { fired = true; openTabCtx(tab.dataset.url, sx, sy); }, 500);
+    });
+    document.addEventListener("pointermove", (e) => {
+      if (timer && !fired && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(timer); timer = 0; }
+    });
+    const done = (e) => {
+      clearTimeout(timer); timer = 0;
+      if (!fired || e.type !== "pointerup") return;
+      fired = false;
+      const swallow = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+      document.addEventListener("click", swallow, true);
+      setTimeout(() => document.removeEventListener("click", swallow, true), 400);
+    };
+    document.addEventListener("pointerup", done);
+    document.addEventListener("pointercancel", done);
+  })();
+
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeTabCtx(); });
+
   // True while the empty "welcome" state (all tabs closed) is showing.
   let welcomeActive = false;
 
@@ -573,6 +651,10 @@
   */
 
   document.addEventListener("click", (e) => {
+
+    // A click anywhere outside the tab context menu dismisses it (menu items
+    // stop propagation and never reach this handler).
+    if (!e.target.closest(".tabmenu.ctx")) closeTabCtx();
 
     // Overflow chevron toggles its dropdown.
     if (e.target.closest("#tabovf")) { e.preventDefault(); toggleTabMenu(); return; }

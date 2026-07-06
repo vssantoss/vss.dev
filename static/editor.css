@@ -286,6 +286,8 @@ html.js .tree:not(.ready) .node.folder .chev{transform:rotate(-90deg)}
   display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;height:100%;cursor:pointer;flex:none;
   border-right:1px solid var(--border-soft);font-size:12.5px;color:var(--text-dim);
   background:var(--bg-tab);white-space:nowrap;position:relative;transition:color .12s;max-width:230px;text-decoration:none;
+  /* Tabs are long-pressable (context menu): no iOS link callout, no selection. */
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
 }
 .tab:hover{color:var(--text)}
 .tab.active{background:var(--bg-tab-active);color:var(--text)}
@@ -324,6 +326,11 @@ html[data-theme="paper"] .tabovf .tabovf-n{color:#fff}
 .tabmenu .item:hover .x{opacity:1}
 .tabmenu .item .x:hover{background:var(--bg-hover);color:var(--text)}
 .tabmenu .item .x svg{width:11px;height:11px}
+
+/* Right-click / long-press tab menu: the overflow dropdown look, floating at
+   the pointer. Appended to body, so it needs to clear the stage (z-index:1)
+   and the command palette (50). */
+.tabmenu.ctx{position:fixed;right:auto;top:auto;z-index:60;min-width:150px}
 
 /* breadcrumb / viewbar */
 .viewbar{
