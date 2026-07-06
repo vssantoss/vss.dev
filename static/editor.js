@@ -1371,10 +1371,11 @@
     { sel: '.activity .act[aria-label="GitHub"]', text: "My GitHub profile. Opens in a new tab." },
     { sel: '.activity .act[aria-label="Contact"]', text: "Contact. Opens the page with the ways to reach me." },
     { sel: "#btn-theme", text: "The theme switch: toggles between the dark and light look. Your pick is remembered for next time." },
+    { sel: "#btn-tour", text: "And this question mark replays this tour whenever you want a refresher. That's everything, enjoy the site!" },
   ];
 
   const TOUR = (function () {
-    let live = [], idx = 0, veil, spot, card, stepEl, textEl, backBtn, nextBtn;
+    let live = [], idx = 0, veil, spot, card, stepEl, textEl, skipBtn, backBtn, nextBtn;
 
     const btn = (label, cls, onClick) => {
       const b = document.createElement("button");
@@ -1393,7 +1394,10 @@
       const actions = document.createElement("div"); actions.className = "tour-actions";
       backBtn = btn("Back", "dlg-btn", () => show(idx - 1));
       nextBtn = btn("Next", "dlg-btn primary", () => (idx >= live.length - 1 ? end() : show(idx + 1)));
-      actions.append(btn("Skip", "dlg-btn tour-skip", end), backBtn, nextBtn);
+      // Skipping jumps to the last step (the replay button) rather than just
+      // closing, so a skipper still learns how to get the tour back.
+      skipBtn = btn("Skip", "dlg-btn tour-skip", () => show(live.length - 1));
+      actions.append(skipBtn, backBtn, nextBtn);
       card.append(stepEl, textEl, actions);
       document.body.append(veil, spot, card);
     }
@@ -1423,6 +1427,7 @@
       textEl.textContent = live[i].text;
       backBtn.disabled = i === 0;
       nextBtn.textContent = i === live.length - 1 ? "Done" : "Next";
+      skipBtn.hidden = i === live.length - 1;
       place();
     }
 
@@ -1438,14 +1443,15 @@
       document.addEventListener("keydown", onKey);
     }
 
-    // Finishing and skipping both count as seen: the tour auto-runs only once.
+    // Any way out counts as seen, stamped with the time: the tour auto-runs
+    // again after the stamp expires (see the boot check).
     function end() {
       if (!veil) return;
       [veil, spot, card].forEach((n) => n.remove());
       veil = spot = card = null;
       window.removeEventListener("resize", onResize);
       document.removeEventListener("keydown", onKey);
-      try { localStorage.setItem(TOUR_KEY, "done"); } catch (e) {}
+      try { localStorage.setItem(TOUR_KEY, String(Date.now())); } catch (e) {}
     }
 
     return { start };
@@ -1488,7 +1494,16 @@
   // phone. Only when the website window is actually on screen (so not on
   // direct app boots or installed-app launches, which land on the desktop),
   // and delayed past the window's rise animation so the targets sit still.
-  const tourSeen = (() => { try { return !!localStorage.getItem(TOUR_KEY); } catch (e) { return true; } })();
+  // "Seen" wears off after 4 weeks, so returning visitors get one refresher.
+  // A missing or malformed stamp (including the old "done" value) reads as
+  // not seen; storage being unavailable reads as seen so the tour can't
+  // auto-run on every load.
+  const TOUR_TTL = 28 * 24 * 60 * 60 * 1000;
+  const tourSeen = (() => {
+    try { return Date.now() - Number(localStorage.getItem(TOUR_KEY)) < TOUR_TTL; }
+    catch (e) { return true; }
+  })();
   if (!tourSeen && !desktopMode() && win && !win.classList.contains("hidden"))
     setTimeout(() => TOUR.start(), 900);
+  if ($("#btn-tour")) $("#btn-tour").addEventListener("click", () => TOUR.start());
 })();
