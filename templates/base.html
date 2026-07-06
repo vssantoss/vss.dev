@@ -287,7 +287,10 @@
 
 {# data the editor JS needs #}
 <script>
-window.CURRENT = { name: {{ fname | json_encode | safe }}, crumb: {{ crumb | json_encode | safe }}, url: {{ cur | json_encode | safe }} };
+{#- On the 404 page the build-time URL fallback is the site root, which would
+    make the editor think README.md is open (active tab, dead tree click).
+    Only the browser knows the URL that missed, so use location.href. -#}
+window.CURRENT = { name: {{ fname | json_encode | safe }}, crumb: {{ crumb | json_encode | safe }}, url: {% if is_404 %}location.href{% else %}{{ cur | json_encode | safe }}{% endif %} };
 window.FILES = [
   { name:"README.md", path:"README.md", url:{{ get_url(path="@/_index.md") | json_encode | safe }} },
   {%- set root = get_section(path="_index.md") -%}
