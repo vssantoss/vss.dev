@@ -114,7 +114,8 @@
 <div class="desktop" id="desktop">
   {# Wallpaper: the wordmark on one line, centered behind the icons.
      Decorative only; CSS themes it. #}
-  <div class="desk-wall" aria-hidden="true">vss<b>.dev</b></div>
+  {# The span is measured by the icon grid, which reserves the cells under it. #}
+  <div class="desk-wall" aria-hidden="true"><span>vss<b>.dev</b></span></div>
   <button class="desk-icon" id="icon-window" data-icon="window" type="button" aria-label="Open vss.dev window">
     <span class="desk-glyph">{{ m::glyph(name="window") }}</span>
     <span class="desk-label"></span>

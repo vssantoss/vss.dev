@@ -955,9 +955,14 @@
     const key = (c, r) => c + "," + r;
 
     // Current layer size in pixels and the column/row counts that fit.
+    // The last column may borrow the right margin: a column only needs the
+    // 72px icon button (CELL_W adds the gap to the next icon), so a screen a
+    // few pixels shy of a full extra cell still gets that column instead of
+    // wasting an icon-sized strip on the right.
+    const ICON_W = 72;
     const dims = () => {
       const r = layer.getBoundingClientRect();
-      return { h: r.height, cols: Math.max(1, Math.floor((r.width - MARGIN * 2) / CELL_W)), rows: Math.max(1, Math.floor((r.height - MARGIN * 2) / CELL_H)) };
+      return { h: r.height, cols: Math.max(1, Math.floor((r.width - MARGIN - ICON_W) / CELL_W) + 1), rows: Math.max(1, Math.floor((r.height - MARGIN * 2) / CELL_H)) };
     };
 
     // Convert a grid cell to a pixel position (rows count up from the bottom).
@@ -971,16 +976,44 @@
       return { c, r };
     }
 
+    // Cells under the wallpaper wordmark are reserved so icons never cover it:
+    // a drop there bounces to the nearest free cell, and default placement
+    // flows around it. Recomputed on resize and once the webfont settles.
+    // Only cells that truly sit on the text are reserved: a cell may poke up
+    // to POKE_X/POKE_Y pixels into the mark (an icon's edges are mostly empty
+    // padding), otherwise every row and column near the mark would become
+    // unusable on narrow screens.
+    const wall = layer.querySelector(".desk-wall span");
+    const POKE_X = 20, POKE_Y = 20;
+    let blocked = new Set();
+    function computeBlocked() {
+      blocked = new Set();
+      if (!wall) return;
+      const lr = layer.getBoundingClientRect(), wr = wall.getBoundingClientRect(), d = dims();
+      const wx1 = wr.left - lr.left, wy1 = wr.top - lr.top;
+      const wx2 = wr.right - lr.left, wy2 = wr.bottom - lr.top;
+      for (let c = 0; c < d.cols; c++)
+        for (let r = 0; r < d.rows; r++) {
+          const p = cellToPx(c, r);
+          const ox = Math.min(p.x + CELL_W, wx2) - Math.max(p.x, wx1);
+          const oy = Math.min(p.y + CELL_H, wy2) - Math.max(p.y, wy1);
+          if (ox > POKE_X && oy > POKE_Y) blocked.add(key(c, r));
+        }
+    }
+
+    // A cell is unavailable if an icon holds it or the wallpaper reserves it.
+    const taken = (c, r) => occ.has(key(c, r)) || blocked.has(key(c, r));
+
     // Find the first free cell, walking up (rows) then right (cols), wrapping
     // from the origin if the tail is full.
     function nextFreeFrom(c, r) {
       const d = dims();
       for (let cc = c; cc < d.cols; cc++)
         for (let rr = cc === c ? r : 0; rr < d.rows; rr++)
-          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+          if (!taken(cc, rr)) return { c: cc, r: rr };
       for (let cc = 0; cc < d.cols; cc++)
         for (let rr = 0; rr < d.rows; rr++)
-          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+          if (!taken(cc, rr)) return { c: cc, r: rr };
       return { c: 0, r: 0 };
     }
 
@@ -990,7 +1023,7 @@
     // Move an icon to a cell, bouncing to the next free one if it's occupied.
     function assign(i, c, r) {
       occ.delete(key(i.col, i.row));
-      if (occ.has(key(c, r))) { const f = nextFreeFrom(c, r); c = f.c; r = f.r; }
+      if (taken(c, r)) { const f = nextFreeFrom(c, r); c = f.c; r = f.r; }
       i.col = c; i.row = r; occ.set(key(c, r), i.id); place(i);
     }
 
@@ -1018,7 +1051,7 @@
       // Restore the saved cell if it still fits and is free, else find one.
       const icon = { id, el, col: 0, row: 0 };
       const d = dims(), s = stored[id];
-      let cell = (s && s.c < d.cols && s.r < d.rows && !occ.has(key(s.c, s.r))) ? { c: s.c, r: s.r } : nextFreeFrom(0, 0);
+      let cell = (s && s.c < d.cols && s.r < d.rows && !taken(s.c, s.r)) ? { c: s.c, r: s.r } : nextFreeFrom(0, 0);
       icon.col = cell.c; icon.row = cell.r; occ.set(key(cell.c, cell.r), id);
       icons.push(icon); place(icon);
 
@@ -1061,16 +1094,23 @@
       return icon;
     }
 
-    // On resize, relocate any icon now outside the grid and re-place the rest.
+    // On resize, relocate any icon now outside the grid or on the wallpaper,
+    // and re-place the rest.
     function reflow() {
+      computeBlocked();
       const d = dims(); let changed = false;
       icons.forEach((i) => {
-        if (i.col >= d.cols || i.row >= d.rows) { occ.delete(key(i.col, i.row)); const f = nextFreeFrom(0, 0); i.col = f.c; i.row = f.r; occ.set(key(f.c, f.r), i.id); changed = true; }
+        if (i.col >= d.cols || i.row >= d.rows || blocked.has(key(i.col, i.row))) { occ.delete(key(i.col, i.row)); const f = nextFreeFrom(0, 0); i.col = f.c; i.row = f.r; occ.set(key(f.c, f.r), i.id); changed = true; }
         place(i);
       });
       if (changed) save();
     }
     window.addEventListener("resize", reflow);
+
+    // The wordmark is measured before icons register, and again once fonts
+    // finish loading (the webfont can change its width).
+    computeBlocked();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(reflow);
     return { register };
   })();
 
