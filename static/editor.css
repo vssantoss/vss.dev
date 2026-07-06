@@ -107,7 +107,9 @@ body{
 /* ============================== WINDOW SHELL ============================== */
 
 /* The stage centers the window over the backdrop. */
-.stage{position:relative;z-index:1;height:100vh;display:flex;align-items:center;justify-content:center;padding:26px}
+/* 100dvh tracks the visible viewport as mobile browser bars show/hide, so the
+   bottom icon row is never behind the toolbar; 100vh is the fallback. */
+.stage{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;padding:26px}
 .window{
   width:100%;max-width:1180px;height:100%;max-height:780px;
   min-width:360px;min-height:420px;
@@ -124,6 +126,11 @@ body{
   animation:rise .8s cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.992)}to{opacity:1;transform:none}}
+
+/* Installed-app launches boot to the desktop (editor.js minimizes the window
+   at boot). This guard keeps the server-rendered window from flashing before
+   that deferred script runs; .js so a no-JS load still shows the site. */
+@media(display-mode:standalone){html.js:not(.booted) .window{display:none}}
 
 /* ---------- window states (driven by editor.js) ---------- */
 
@@ -174,6 +181,10 @@ body{
 }
 .iconbtn:hover{background:var(--bg-hover);color:var(--text)}
 .iconbtn svg{width:15px;height:15px}
+
+/* The tour replay button is mobile-only (shown in the mobile media block):
+   the guided tour explains the touch UI and never runs on desktop. */
+#btn-tour{display:none}
 
 /* ============================== BODY ============================== */
 
@@ -275,6 +286,8 @@ html.js .tree:not(.ready) .node.folder .chev{transform:rotate(-90deg)}
   display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;height:100%;cursor:pointer;flex:none;
   border-right:1px solid var(--border-soft);font-size:12.5px;color:var(--text-dim);
   background:var(--bg-tab);white-space:nowrap;position:relative;transition:color .12s;max-width:230px;text-decoration:none;
+  /* Tabs are long-pressable (context menu): no iOS link callout, no selection. */
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
 }
 .tab:hover{color:var(--text)}
 .tab.active{background:var(--bg-tab-active);color:var(--text)}
@@ -313,6 +326,11 @@ html[data-theme="paper"] .tabovf .tabovf-n{color:#fff}
 .tabmenu .item:hover .x{opacity:1}
 .tabmenu .item .x:hover{background:var(--bg-hover);color:var(--text)}
 .tabmenu .item .x svg{width:11px;height:11px}
+
+/* Right-click / long-press tab menu: the overflow dropdown look, floating at
+   the pointer. Appended to body, so it needs to clear the stage (z-index:1)
+   and the command palette (50). */
+.tabmenu.ctx{position:fixed;right:auto;top:auto;z-index:60;min-width:150px}
 
 /* breadcrumb / viewbar */
 .viewbar{
@@ -601,6 +619,19 @@ html[data-theme="paper"] .statusbar{color:#fff}
 /* Full-stage layer behind the window. Transparent + non-interactive so the
    window stays clickable; only the icons themselves capture pointer events. */
 .desktop{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+
+/* Wallpaper wordmark, centered behind the icons (they are absolute and paint
+   above it). Inherits the layer's pointer-events:none, so it never blocks a
+   click; the window (z-index:2) covers it whenever one is open. */
+/* Each theme prints the wordmark in the other theme's window colour: light
+   ink on the dark desktop, dark ink on the light one. */
+.desk-wall{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#fbf8f1;font-family:var(--mono);font-weight:700;font-size:clamp(2.2rem,6vw,3.4rem);
+}
+html[data-theme="paper"] .desk-wall{color:#17161c}
+.desk-wall b{color:var(--accent)}
+
 .desk-icon{
   position:absolute;pointer-events:auto;width:72px;
   display:flex;flex-direction:column;align-items:center;gap:7px;padding:9px 5px 7px;
@@ -618,7 +649,12 @@ html[data-theme="paper"] .statusbar{color:#fff}
   background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);
   border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
 }
-.desk-glyph svg{width:24px;height:24px}
+.desk-glyph svg{width:32px;height:32px}
+
+/* The theme icon shows the current theme's glyph. Moon is the default so a
+   missing data-theme (pre-boot) still renders exactly one glyph. */
+html[data-theme="paper"] #icon-theme .g-moon,
+html:not([data-theme="paper"]) #icon-theme .g-sun{display:none}
 .desk-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
 
 /* ============================== MINI-APP WINDOWS ============================== */
@@ -643,8 +679,10 @@ html[data-theme="paper"] .statusbar{color:#fff}
 /* Window-kind body: the content host fills the area below the titlebar. */
 .window.app .main.app-host{background:var(--bg-editor);overflow:auto}
 
-/* Dialog: title + message + a right-aligned button row, no status bar. */
+/* Dialog: title + message + a right-aligned button row, no status bar.
+   touch-action lets the titlebar drag own touch gestures (mobile drag). */
 .window.app.dialog{min-width:300px}
+.window.app.dialog .titlebar{touch-action:none}
 .window.app.dialog .dialog-body{
   flex:1;min-height:40px;padding:22px 22px 8px;
   font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--text);
@@ -662,6 +700,31 @@ html[data-theme="paper"] .statusbar{color:#fff}
 .dlg-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .dlg-btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1208}
 html[data-theme="paper"] .dlg-btn.primary{color:#fff}
+
+/* ============================== GUIDED TOUR ============================== */
+
+/* First-visit coach marks: a spotlight cut out of a full-screen dim (the
+   viewport-sized box-shadow trick) plus an explainer card. The veil under
+   both swallows taps so the tour owns the screen while it runs. */
+.tour-veil{position:fixed;inset:0;z-index:69}
+.tour-spot{
+  position:fixed;z-index:70;pointer-events:none;border-radius:10px;
+  /* The accent ring is inset so it stays whole and evenly shaped even when
+     the box is clamped against a screen edge. 200vmax: a 100vmax spread from
+     a corner-pinned box leaves the opposite screen corner outside its
+     rounded shadow corner (up to ~1.42vmax away). */
+  box-shadow:0 0 0 200vmax rgba(0,0,0,.62),inset 0 0 0 2px var(--accent);
+  transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease;
+}
+.tour-card{
+  position:fixed;z-index:71;max-width:min(330px,calc(100vw - 24px));
+  background:var(--bg-window);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.7);padding:13px 15px;
+}
+.tour-step{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-bottom:6px}
+.tour-text{font-family:var(--sans);font-size:13.5px;line-height:1.55;color:var(--text)}
+.tour-actions{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tour-actions .tour-skip{margin-right:auto}
 
 /* ============================== RESPONSIVE ============================== */
 
@@ -705,19 +768,41 @@ html[data-theme="paper"] .dlg-btn.primary{color:#fff}
   .dots .dot{position:relative}
   .dots .dot::after{content:"";position:absolute;inset:-7px}
 
-  /* App windows go full-screen too (one at a time on mobile); inline drag/resize
-     geometry is overridden and the resize grips are dropped. */
-  .window.app{
+  /* Window-kind apps go full-screen too (one at a time on mobile); inline
+     drag/resize geometry is overridden and the resize grips are dropped.
+     Dialog-kind apps are the exception: they keep the floating, centered,
+     content-sized desktop look (rule below). */
+  .window.app:not(.dialog){
     position:fixed;inset:0;
     left:0!important;top:0!important;width:100%!important;height:100%!important;
+    /* Same dvh treatment as .stage: keep the window's bottom edge (status bar)
+       above the browser's dynamic toolbar. */
+    height:100dvh!important;
     max-width:none!important;max-height:none!important;min-width:0;
     border-radius:0;border:none;
   }
   .window.app .win-handle{display:none}
+
+  /* Dialogs are modal on mobile: a viewport-sized shadow dims everything
+     behind the dialog, and everything behind it goes inert, so the dialog
+     has to be closed before the desktop or another launcher can be used. */
+  .window.app.dialog{
+    max-width:calc(100% - 28px);box-shadow:0 0 0 200vmax rgba(0,0,0,.5);
+    /* Restore the desktop window look that the edge-to-edge rules above strip. */
+    border-radius:var(--r);border:1px solid var(--border);
+  }
+  /* .desk-icon must be listed too: it sets pointer-events:auto to stay
+     clickable inside the inert .desktop layer, which would win over the
+     none inherited from .desktop alone. */
+  body:has(.window.app.dialog:not(.hidden)) :is(.desktop,.desk-icon,.window:not(.dialog)){pointer-events:none}
+
+  /* Mobile-only: replays the guided tour. */
+  #btn-tour{display:grid}
 }
 
 /* Respect reduced-motion: kill the entrance animations. */
 @media(prefers-reduced-motion:reduce){
   .window,.node,.prose>*,.source .row,.desk-icon{animation:none!important}
   .tabovf .chev{transition:none}
+  .tour-spot{transition:none}
 }

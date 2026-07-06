@@ -8,4 +8,3 @@ Guidance for AI agents and contributors working in this repository.
 - **Blank line between blocks.** Separate paragraphs, headings, lists, and code blocks with a single blank line.
 - **Leave intentional breaks alone.** Lines ending in `<br>` (for example, the link lists in `content/tips/`) are deliberate line breaks. Do not collapse them.
 - **Do not reflow non-prose.** Front matter (`+++ ... +++`), fenced code blocks, list items, numbered steps, blockquotes, and tables keep their own line structure. Only join wrapped prose paragraphs.
-- **No em dashes.** Never use the `—` character in content, commits, or anywhere else. Use regular punctuation instead.

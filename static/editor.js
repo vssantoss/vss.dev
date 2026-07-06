@@ -14,6 +14,12 @@
   const FILES = window.FILES || [];
   const CURRENT = window.CURRENT || { name: "", crumb: "", url: location.href };
 
+  // Stash the browser's PWA install prompt for the Install mini-app: the
+  // beforeinstallprompt event fires once, long before that module is loaded
+  // on demand, so the kernel has to catch and hold it.
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); window.__installPrompt = e; });
+  window.addEventListener("appinstalled", () => { window.__installPrompt = null; });
+
   // Normalise a URL to a comparable pathname (no trailing slash, "/" for root).
   const norm = (p) => { try { return new URL(p, location.href).pathname.replace(/\/$/, "") || "/"; } catch (e) { return p; } };
 
@@ -238,6 +244,84 @@
     const menu = $("#tabmenu");
     if (menu && menu.hidden) openTabMenu(); else closeTabMenu();
   }
+
+  /* ---------- tab context menu: Close / Close Others / Close All ---------- */
+
+  // Keep only the given tab. If it wasn't the current page, go to it: it is
+  // the only tab left.
+  function closeOtherTabs(url) {
+    writeTabs(readTabs().filter((t) => norm(t.url) === norm(url)));
+    if (norm(url) === getCur()) renderTabs(); else navigate(url, true);
+  }
+
+  // Close every tab and drop into the welcome state, like closing the last tab.
+  function closeAllTabs() { writeTabs([]); showWelcome(); }
+
+  // The floating menu element; only one can exist at a time.
+  let tabCtx = null;
+
+  function closeTabCtx() { if (tabCtx) { tabCtx.remove(); tabCtx = null; } }
+
+  // Build the menu for one tab and show it at (x, y), clamped to the viewport.
+  function openTabCtx(url, x, y) {
+    closeTabCtx(); closeTabMenu();
+    tabCtx = document.createElement("div");
+    tabCtx.className = "tabmenu ctx";
+    tabCtx.setAttribute("role", "menu");
+    [["Close", () => closeTab(url)],
+     ["Close Others", () => closeOtherTabs(url)],
+     ["Close All", closeAllTabs]].forEach(([label, run]) => {
+      const it = document.createElement("div");
+      it.className = "item"; it.setAttribute("role", "menuitem"); it.tabIndex = 0;
+      it.innerHTML = '<span class="nm">' + label + "</span>";
+      const go = (e) => { e.preventDefault(); e.stopPropagation(); closeTabCtx(); run(); };
+      it.addEventListener("click", go);
+      it.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") go(e); });
+      tabCtx.appendChild(it);
+    });
+    document.body.appendChild(tabCtx);
+    const r = tabCtx.getBoundingClientRect();
+    tabCtx.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
+    tabCtx.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+  }
+
+  // Desktop right-click (Android also routes touch long-press here).
+  document.addEventListener("contextmenu", (e) => {
+    const tab = e.target.closest("#tabstrip .tab");
+    if (!tab) { closeTabCtx(); return; }
+    e.preventDefault();
+    openTabCtx(tab.dataset.url, e.clientX, e.clientY);
+  });
+
+  // Touch long-press fallback: iOS Safari never fires contextmenu for touch.
+  // Movement past a small threshold (= scrolling the strip) cancels it, and
+  // the ghost click that follows the release is swallowed in capture phase so
+  // it can neither follow the tab link nor instantly dismiss the menu.
+  (function () {
+    let timer = 0, sx = 0, sy = 0, fired = false;
+    document.addEventListener("pointerdown", (e) => {
+      const tab = e.pointerType === "touch" ? e.target.closest("#tabstrip .tab") : null;
+      if (!tab) return;
+      sx = e.clientX; sy = e.clientY; fired = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => { fired = true; openTabCtx(tab.dataset.url, sx, sy); }, 500);
+    });
+    document.addEventListener("pointermove", (e) => {
+      if (timer && !fired && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(timer); timer = 0; }
+    });
+    const done = (e) => {
+      clearTimeout(timer); timer = 0;
+      if (!fired || e.type !== "pointerup") return;
+      fired = false;
+      const swallow = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+      document.addEventListener("click", swallow, true);
+      setTimeout(() => document.removeEventListener("click", swallow, true), 400);
+    };
+    document.addEventListener("pointerup", done);
+    document.addEventListener("pointercancel", done);
+  })();
+
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeTabCtx(); });
 
   // True while the empty "welcome" state (all tabs closed) is showing.
   let welcomeActive = false;
@@ -568,6 +652,10 @@
 
   document.addEventListener("click", (e) => {
 
+    // A click anywhere outside the tab context menu dismisses it (menu items
+    // stop propagation and never reach this handler).
+    if (!e.target.closest(".tabmenu.ctx")) closeTabCtx();
+
     // Overflow chevron toggles its dropdown.
     if (e.target.closest("#tabovf")) { e.preventDefault(); toggleTabMenu(); return; }
 
@@ -622,8 +710,9 @@
     if ($("#theme-icon")) $("#theme-icon").innerHTML = t === "ink" ? moon : sun;
     appThemeCbs.forEach((cb) => { try { cb(t); } catch (e) {} });
   }
-  if ($("#btn-theme")) $("#btn-theme").addEventListener("click", () =>
-    setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink"));
+  const toggleTheme = () =>
+    setTheme(document.documentElement.dataset.theme === "ink" ? "paper" : "ink");
+  if ($("#btn-theme")) $("#btn-theme").addEventListener("click", toggleTheme);
 
   /* ---------- sidebar ---------- */
 
@@ -866,9 +955,14 @@
     const key = (c, r) => c + "," + r;
 
     // Current layer size in pixels and the column/row counts that fit.
+    // The last column may borrow the right margin: a column only needs the
+    // 72px icon button (CELL_W adds the gap to the next icon), so a screen a
+    // few pixels shy of a full extra cell still gets that column instead of
+    // wasting an icon-sized strip on the right.
+    const ICON_W = 72;
     const dims = () => {
       const r = layer.getBoundingClientRect();
-      return { h: r.height, cols: Math.max(1, Math.floor((r.width - MARGIN * 2) / CELL_W)), rows: Math.max(1, Math.floor((r.height - MARGIN * 2) / CELL_H)) };
+      return { h: r.height, cols: Math.max(1, Math.floor((r.width - MARGIN - ICON_W) / CELL_W) + 1), rows: Math.max(1, Math.floor((r.height - MARGIN * 2) / CELL_H)) };
     };
 
     // Convert a grid cell to a pixel position (rows count up from the bottom).
@@ -882,16 +976,44 @@
       return { c, r };
     }
 
+    // Cells under the wallpaper wordmark are reserved so icons never cover it:
+    // a drop there bounces to the nearest free cell, and default placement
+    // flows around it. Recomputed on resize and once the webfont settles.
+    // Only cells that truly sit on the text are reserved: a cell may poke up
+    // to POKE_X/POKE_Y pixels into the mark (an icon's edges are mostly empty
+    // padding), otherwise every row and column near the mark would become
+    // unusable on narrow screens.
+    const wall = layer.querySelector(".desk-wall span");
+    const POKE_X = 20, POKE_Y = 20;
+    let blocked = new Set();
+    function computeBlocked() {
+      blocked = new Set();
+      if (!wall) return;
+      const lr = layer.getBoundingClientRect(), wr = wall.getBoundingClientRect(), d = dims();
+      const wx1 = wr.left - lr.left, wy1 = wr.top - lr.top;
+      const wx2 = wr.right - lr.left, wy2 = wr.bottom - lr.top;
+      for (let c = 0; c < d.cols; c++)
+        for (let r = 0; r < d.rows; r++) {
+          const p = cellToPx(c, r);
+          const ox = Math.min(p.x + CELL_W, wx2) - Math.max(p.x, wx1);
+          const oy = Math.min(p.y + CELL_H, wy2) - Math.max(p.y, wy1);
+          if (ox > POKE_X && oy > POKE_Y) blocked.add(key(c, r));
+        }
+    }
+
+    // A cell is unavailable if an icon holds it or the wallpaper reserves it.
+    const taken = (c, r) => occ.has(key(c, r)) || blocked.has(key(c, r));
+
     // Find the first free cell, walking up (rows) then right (cols), wrapping
     // from the origin if the tail is full.
     function nextFreeFrom(c, r) {
       const d = dims();
       for (let cc = c; cc < d.cols; cc++)
         for (let rr = cc === c ? r : 0; rr < d.rows; rr++)
-          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+          if (!taken(cc, rr)) return { c: cc, r: rr };
       for (let cc = 0; cc < d.cols; cc++)
         for (let rr = 0; rr < d.rows; rr++)
-          if (!occ.has(key(cc, rr))) return { c: cc, r: rr };
+          if (!taken(cc, rr)) return { c: cc, r: rr };
       return { c: 0, r: 0 };
     }
 
@@ -901,7 +1023,7 @@
     // Move an icon to a cell, bouncing to the next free one if it's occupied.
     function assign(i, c, r) {
       occ.delete(key(i.col, i.row));
-      if (occ.has(key(c, r))) { const f = nextFreeFrom(c, r); c = f.c; r = f.r; }
+      if (taken(c, r)) { const f = nextFreeFrom(c, r); c = f.c; r = f.r; }
       i.col = c; i.row = r; occ.set(key(c, r), i.id); place(i);
     }
 
@@ -929,7 +1051,7 @@
       // Restore the saved cell if it still fits and is free, else find one.
       const icon = { id, el, col: 0, row: 0 };
       const d = dims(), s = stored[id];
-      let cell = (s && s.c < d.cols && s.r < d.rows && !occ.has(key(s.c, s.r))) ? { c: s.c, r: s.r } : nextFreeFrom(0, 0);
+      let cell = (s && s.c < d.cols && s.r < d.rows && !taken(s.c, s.r)) ? { c: s.c, r: s.r } : nextFreeFrom(0, 0);
       icon.col = cell.c; icon.row = cell.r; occ.set(key(cell.c, cell.r), id);
       icons.push(icon); place(icon);
 
@@ -972,16 +1094,23 @@
       return icon;
     }
 
-    // On resize, relocate any icon now outside the grid and re-place the rest.
+    // On resize, relocate any icon now outside the grid or on the wallpaper,
+    // and re-place the rest.
     function reflow() {
+      computeBlocked();
       const d = dims(); let changed = false;
       icons.forEach((i) => {
-        if (i.col >= d.cols || i.row >= d.rows) { occ.delete(key(i.col, i.row)); const f = nextFreeFrom(0, 0); i.col = f.c; i.row = f.r; occ.set(key(f.c, f.r), i.id); changed = true; }
+        if (i.col >= d.cols || i.row >= d.rows || blocked.has(key(i.col, i.row))) { occ.delete(key(i.col, i.row)); const f = nextFreeFrom(0, 0); i.col = f.c; i.row = f.r; occ.set(key(f.c, f.r), i.id); changed = true; }
         place(i);
       });
       if (changed) save();
     }
     window.addEventListener("resize", reflow);
+
+    // The wordmark is measured before icons register, and again once fonts
+    // finish loading (the webfont can change its width).
+    computeBlocked();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(reflow);
     return { register };
   })();
 
@@ -1076,7 +1205,9 @@
     const tb = w.querySelector(".titlebar");
     if (!tb) return;
     tb.addEventListener("pointerdown", (e) => {
-      if (!desktopMode() || e.button !== 0) return;
+      // Dialogs float on mobile too, so they stay draggable there; every
+      // other window is full-screen below the breakpoint.
+      if ((!desktopMode() && !w.classList.contains("dialog")) || e.button !== 0) return;
       if (e.target.closest(".dot, .iconbtn, .right, .win-handle")) return;
       if (w.classList.contains("maximized")) return;
       if (onFocus) onFocus();
@@ -1112,7 +1243,9 @@
   function makeWindowEl(tmpl, opts) {
     const el = tmpl.content.firstElementChild.cloneNode(true);
     const t = el.querySelector(".app-title"); if (t) t.textContent = opts.title || "";
-    if (opts.maxWidth) el.style.maxWidth = opts.maxWidth + "px";
+    // min() keeps a requested cap from overflowing narrow screens (the CSS
+    // mobile rules also cap dialogs that don't request a width).
+    if (opts.maxWidth) el.style.maxWidth = "min(" + opts.maxWidth + "px, calc(100% - 28px))";
     if (opts.maxHeight) el.style.maxHeight = opts.maxHeight + "px";
     el.style.left = el.style.top = "-9999px";
     stage.appendChild(el);
@@ -1334,11 +1467,122 @@
     win.addEventListener("pointerdown", () => { if (desktopMode()) WM.focus(websiteRec); }, true);
   }
 
+  // True when running as the installed app (navigator.standalone is iOS
+  // Safari's pre-standard spelling of display-mode: standalone).
+  const runningStandalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
   // Register the per-app desktop icons (always visible) to launch their apps.
+  // Exception: inside the installed app the Install app is moot, so its icon
+  // is dropped before registration and never holds a grid cell.
   if (DESK) document.querySelectorAll("#desktop .desk-icon[data-app]").forEach((el) => {
     const name = el.dataset.app, url = el.dataset.appUrl || ("/app/" + name + "/");
+    if (runningStandalone && name === "install") { el.hidden = true; return; }
     DESK.register(el, { onOpen: () => WM.launch(name, url) });
   });
+
+  // The theme icon is a switch, not a launcher: tapping it flips the theme in
+  // place and its moon/sun glyph follows via CSS on html[data-theme].
+  if (DESK && $("#icon-theme")) DESK.register($("#icon-theme"), { onOpen: toggleTheme });
+
+  /* ---------- guided tour: first-visit coach marks ---------- */
+
+  // Each step spotlights one piece of the window chrome and explains it in a
+  // sentence or two. Steps whose target is missing or not rendered are
+  // dropped at start time, so this list can name things that only exist on
+  // some pages without breaking the tour.
+  const TOUR_KEY = "vss-tour";
+  const TOUR_STEPS = [
+    { sel: ".titlebar .dots", text: "These work like real window controls: red closes this window, yellow minimizes it. Either way you land on the desktop, where every icon reopens its window." },
+    { sel: "#act-files", text: "The Explorer. It opens and closes the file tree, which is the menu here: every post, project, and page on this site is a file in it." },
+    { sel: "#act-search", text: "Search. It opens the command palette; type a few letters to filter and jump straight to any page." },
+    { sel: '.activity .act[aria-label="GitHub"]', text: "My GitHub profile. Opens in a new tab." },
+    { sel: '.activity .act[aria-label="Contact"]', text: "Contact. Opens the page with the ways to reach me." },
+    { sel: "#btn-theme", text: "The theme switch: toggles between the dark and light look. Your pick is remembered for next time." },
+    { sel: "#btn-tour", text: "And this question mark replays this tour whenever you want a refresher. That's everything, enjoy the site!" },
+  ];
+
+  const TOUR = (function () {
+    let live = [], idx = 0, veil, spot, card, stepEl, textEl, skipBtn, backBtn, nextBtn;
+
+    const btn = (label, cls, onClick) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = cls; b.textContent = label;
+      b.addEventListener("click", onClick);
+      return b;
+    };
+
+    function build() {
+      veil = document.createElement("div"); veil.className = "tour-veil";
+      spot = document.createElement("div"); spot.className = "tour-spot";
+      card = document.createElement("div"); card.className = "tour-card";
+      card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "How vss.dev works");
+      stepEl = document.createElement("div"); stepEl.className = "tour-step";
+      textEl = document.createElement("div"); textEl.className = "tour-text";
+      const actions = document.createElement("div"); actions.className = "tour-actions";
+      backBtn = btn("Back", "dlg-btn", () => show(idx - 1));
+      nextBtn = btn("Next", "dlg-btn primary", () => (idx >= live.length - 1 ? end() : show(idx + 1)));
+      // Skipping jumps to the last step (the replay button) rather than just
+      // closing, so a skipper still learns how to get the tour back.
+      skipBtn = btn("Skip", "dlg-btn tour-skip", () => show(live.length - 1));
+      actions.append(skipBtn, backBtn, nextBtn);
+      card.append(stepEl, textEl, actions);
+      document.body.append(veil, spot, card);
+    }
+
+    // Spotlight the target; card below it, or above when there is no room.
+    // The box is clamped to the viewport; its accent ring is inset (see CSS)
+    // so even an edge-flush box shows a whole, evenly shaped ring.
+    function place() {
+      const r = live[idx].el.getBoundingClientRect(), pad = 8, gap = 12, edge = 0;
+      const left = Math.max(edge, r.left - pad), top = Math.max(edge, r.top - pad);
+      const right = Math.min(innerWidth - edge, r.right + pad);
+      const bottom = Math.min(innerHeight - edge, r.bottom + pad);
+      spot.style.left = left + "px";
+      spot.style.top = top + "px";
+      spot.style.width = Math.max(0, right - left) + "px";
+      spot.style.height = Math.max(0, bottom - top) + "px";
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      let ctop = bottom + gap;
+      if (ctop + ch > innerHeight - 10) ctop = top - gap - ch;
+      card.style.top = Math.max(10, ctop) + "px";
+      card.style.left = Math.min(Math.max(10, (left + right) / 2 - cw / 2), Math.max(10, innerWidth - cw - 10)) + "px";
+    }
+
+    function show(i) {
+      idx = i;
+      stepEl.textContent = (i + 1) + " / " + live.length;
+      textEl.textContent = live[i].text;
+      backBtn.disabled = i === 0;
+      nextBtn.textContent = i === live.length - 1 ? "Done" : "Next";
+      skipBtn.hidden = i === live.length - 1;
+      place();
+    }
+
+    const onResize = () => place();
+    const onKey = (e) => { if (e.key === "Escape") end(); };
+
+    function start() {
+      if (veil) return;
+      live = TOUR_STEPS.map((s) => ({ text: s.text, el: $(s.sel) })).filter((s) => s.el && s.el.offsetWidth > 0);
+      if (!live.length) return;
+      build(); show(0);
+      window.addEventListener("resize", onResize);
+      document.addEventListener("keydown", onKey);
+    }
+
+    // Any way out counts as seen, stamped with the time: the tour auto-runs
+    // again after the stamp expires (see the boot check).
+    function end() {
+      if (!veil) return;
+      [veil, spot, card].forEach((n) => n.remove());
+      veil = spot = card = null;
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("keydown", onKey);
+      try { localStorage.setItem(TOUR_KEY, String(Date.now())); } catch (e) {}
+    }
+
+    return { start };
+  })();
 
   /* ---------- boot ---------- */
 
@@ -1363,4 +1607,30 @@
   // app over it ("website closes, app opens").
   const bootApp = document.body.dataset.app;
   if (bootApp) { bootedIntoApp = true; hideWindow(false); WM.launch(bootApp, location.href); }
+
+  // Installed-app launches boot to the desktop: the website window starts
+  // minimized behind its launcher instead of opening automatically.
+  else if (runningStandalone) hideWindow(false);
+
+  // Boot is done; release the pre-boot CSS guard that kept the window from
+  // flashing on standalone launches before this script ran.
+  document.documentElement.classList.add("booted");
+
+  // First visit on a small screen: walk through the window chrome once. The
+  // desktop metaphor mostly explains itself with a mouse, much less so on a
+  // phone. Only when the website window is actually on screen (so not on
+  // direct app boots or installed-app launches, which land on the desktop),
+  // and delayed past the window's rise animation so the targets sit still.
+  // "Seen" wears off after 4 weeks, so returning visitors get one refresher.
+  // A missing or malformed stamp (including the old "done" value) reads as
+  // not seen; storage being unavailable reads as seen so the tour can't
+  // auto-run on every load.
+  const TOUR_TTL = 28 * 24 * 60 * 60 * 1000;
+  const tourSeen = (() => {
+    try { return Date.now() - Number(localStorage.getItem(TOUR_KEY)) < TOUR_TTL; }
+    catch (e) { return true; }
+  })();
+  if (!tourSeen && !desktopMode() && win && !win.classList.contains("hidden"))
+    setTimeout(() => TOUR.start(), 900);
+  if ($("#btn-tour")) $("#btn-tour").addEventListener("click", () => TOUR.start());
 })();

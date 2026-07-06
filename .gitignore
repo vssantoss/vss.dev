@@ -20,3 +20,15 @@ Desktop.ini
 *.log
 *.tmp
 *.bak
+
+# Personal, uncommitted AI/agent guidance
+CLAUDE.local.md
+
+# Fonts downloaded by assets/icons/generate.py (fetched on first run)
+assets/icons/fonts/
+
+# Temporary staging build output (scripts/deploy-staging.sh)
+.staging-build/
+
+# Local ops scripts with server paths (this repo is public)
+scripts/deploy-staging.sh
